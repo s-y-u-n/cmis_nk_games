@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import combinations
 from typing import Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 
 from ..landscape import NKLandscape
+from ..utils import enumerate_coalitions
 
 
 @dataclass
@@ -35,7 +35,7 @@ class EthirajGameTableBuilder:
     def build_table(self, max_size: Optional[int] = None) -> pd.DataFrame:
         records: List[dict[str, object]] = []
         coalition_id = 0
-        for coalition in self._enumerate_coalitions(max_size):
+        for coalition in enumerate_coalitions(self.modules, max_size):
             state = self.baseline_state.copy()
             member_names = tuple(module.name for module in coalition)
             for module in coalition:
@@ -56,14 +56,3 @@ class EthirajGameTableBuilder:
             )
             coalition_id += 1
         return pd.DataFrame(records)
-
-    def _enumerate_coalitions(
-        self, max_size: Optional[int]
-    ) -> Iterable[Tuple[ModuleDefinition, ...]]:
-        yield tuple()
-        total = len(self.modules)
-        for size in range(1, total + 1):
-            if max_size and size > max_size:
-                break
-            for combo in combinations(self.modules, size):
-                yield combo

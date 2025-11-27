@@ -5,17 +5,15 @@ from typing import List, Sequence, Tuple
 import numpy as np
 
 from ..landscape import NKLandscape
+from ..utils import split_bits_evenly
 
 
 def build_true_modules(N: int, module_count: int) -> List[List[int]]:
-    modules: List[List[int]] = [[] for _ in range(module_count)]
-    for idx in range(N):
-        modules[idx % module_count].append(idx)
-    return modules
+    return split_bits_evenly(N, module_count)
 
 
 def build_designer_modules(N: int, designer_count: int) -> List[List[int]]:
-    return build_true_modules(N, max(1, designer_count))
+    return split_bits_evenly(N, max(1, designer_count))
 
 
 def build_ethiraj_landscape(

@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import numpy as np
-
 from .agents import Agent, create_agents
 from .config_loader import ExperimentConfig, load_experiment_config
 from .game_table import (
@@ -26,6 +24,7 @@ from .ethiraj import (
     EthirajGameTableBuilder,
 )
 from .ethiraj.game_table import ModuleDefinition
+from .utils import bitstring_to_array
 
 
 def protocol_from_name(name: str) -> GameValueProtocol:
@@ -115,7 +114,7 @@ def _run_levinthal_experiment(
     if not exp.levinthal:
         raise ValueError("Levinthal scenario requires search settings in config")
     landscape = build_landscape(exp)
-    baseline_state = _baseline_string_to_array(exp.levinthal.baseline_state, exp.N)
+    baseline_state = bitstring_to_array(exp.levinthal.baseline_state, exp.N)
     players = _build_players(exp)
     search_config = LocalSearchConfig(
         max_steps=exp.levinthal.max_steps,
@@ -160,7 +159,7 @@ def _run_ethiraj_experiment(
         inter_bias=exp.ethiraj.inter_density,
         seed=exp.landscape_seed or exp.random_seed,
     )
-    baseline_state = _baseline_string_to_array(exp.ethiraj.baseline_state, exp.N)
+    baseline_state = bitstring_to_array(exp.ethiraj.baseline_state, exp.N)
     population = EthirajFirmPopulation(
         landscape=landscape,
         designer_modules=designer_modules,
@@ -199,16 +198,6 @@ def _run_ethiraj_experiment(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path, index=False)
     return output_path, len(df)
-
-
-def _baseline_string_to_array(state: str, length: int) -> np.ndarray:
-    cleaned = [char for char in str(state) if char in {"0", "1"}]
-    if len(cleaned) != length:
-        raise ValueError(
-            f"baseline_state length {len(cleaned)} does not match N={length}"
-        )
-    return np.array([int(ch) for ch in cleaned], dtype=np.int8)
-
 
 def _build_players(exp: ExperimentConfig) -> List[LevinthalPlayer]:
     N = exp.N

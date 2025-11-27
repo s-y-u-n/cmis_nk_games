@@ -20,6 +20,7 @@ from .ethiraj import (
     run_ethiraj_simulation,
     EthirajGameTableBuilder,
 )
+from .utils import bitstring_to_array, split_bits_evenly, enumerate_coalitions
 from .pipeline import run_experiment, protocol_from_name
 
 __all__ = [
@@ -45,6 +46,9 @@ __all__ = [
     "EthirajSimulationResult",
     "run_ethiraj_simulation",
     "EthirajGameTableBuilder",
+    "bitstring_to_array",
+    "split_bits_evenly",
+    "enumerate_coalitions",
     "run_experiment",
     "protocol_from_name",
 ]

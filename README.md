@@ -11,11 +11,13 @@ This repository hosts source code, documentation and experiment outputs for the 
 
 ## Design Docs
 
-The implementation follows the layered architectures captured in:
+The implementation follows the layered architectures captured in the parallel scenario docs:
 
-- Lazer2007 set: `docs/requirements.md`, `docs/basic_design.md`, `docs/detailed_design.md`
-- Levinthal1997 set: `docs/levinthal_requirements.md`, `docs/levinthal_basic_design.md`, `docs/levinthal_detailed_design.md`
-- Ethiraj2004 set: `docs/ethiraj_requirements.md`, `docs/ethiraj_basic_design.md`, `docs/ethiraj_detailed_design.md`
+- Lazer2007: `docs/design/lazer2007/requirements.md`, `docs/design/lazer2007/basic_design.md`, `docs/design/lazer2007/detailed_design.md`
+- Levinthal1997: `docs/design/levinthal1997/requirements.md`, `docs/design/levinthal1997/basic_design.md`, `docs/design/levinthal1997/detailed_design.md`
+- Ethiraj2004: `docs/design/ethiraj2004/requirements.md`, `docs/design/ethiraj2004/basic_design.md`, `docs/design/ethiraj2004/detailed_design.md`
+
+See `docs/README.md` for the index. The legacy root-level Lazer files remain for backward compatibility only.
 
 Each document maps back to the "NKモデル採用報告書" policy and keeps the specification aligned with the code.
 

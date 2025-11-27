@@ -78,6 +78,7 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
     scenario_type = scenario.get("type", "lazer2007").lower()
     levinthal_settings: Optional[LevinthalSettings] = None
     ethiraj_settings: Optional[EthirajSettings] = None
+    ethiraj_settings: Optional[EthirajSettings] = None
     if scenario_type == "levinthal1997":
         search = raw.get("search", {})
         baseline_state = search.get("baseline_state")

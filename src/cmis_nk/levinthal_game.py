@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import combinations
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -10,6 +9,7 @@ import pandas as pd
 from .game_table import GameTableRecord
 from .landscape import NKLandscape
 from .local_search import LocalSearchConfig, LocalSearchEngine
+from .utils import enumerate_coalitions
 
 
 @dataclass
@@ -44,7 +44,7 @@ class LevinthalGameTableBuilder:
         self.records.clear()
         coalition_index = 0
         baseline_fitness = float(self.landscape.evaluate(self.baseline_state))
-        for coalition in self._enumerate_coalitions(max_size):
+        for coalition in enumerate_coalitions(self.players, max_size):
             member_ids = tuple(player.player_id for player in coalition)
             free_bits = sorted({bit for player in coalition for bit in player.bits})
             if not free_bits:
@@ -80,17 +80,6 @@ class LevinthalGameTableBuilder:
             )
             coalition_index += 1
         return self.to_dataframe()
-
-    def _enumerate_coalitions(
-        self, max_size: Optional[int]
-    ) -> Iterable[Tuple[LevinthalPlayer, ...]]:
-        yield tuple()
-        num_players = len(self.players)
-        for size in range(1, num_players + 1):
-            if max_size and size > max_size:
-                break
-            for combo_indices in combinations(range(num_players), size):
-                yield tuple(self.players[i] for i in combo_indices)
 
     def to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame([record.__dict__ for record in self.records])
