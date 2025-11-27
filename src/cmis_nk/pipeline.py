@@ -24,7 +24,7 @@ from .ethiraj2004 import (
     EthirajGameTableBuilder,
 )
 from .ethiraj2004.game_table import ModuleDefinition
-from .utils import bitstring_to_array
+from .utils import bitstring_to_array, next_numbered_csv_path
 
 
 def protocol_from_name(name: str) -> GameValueProtocol:
@@ -124,8 +124,12 @@ def _run_lazer_experiment(
     )
     target_max_size = max_coalition_size or exp.max_coalition_size
     df = builder.build_table(max_size=target_max_size)
-    output_path = Path(output_override) if output_override else exp.output_path
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_override:
+        output_path = Path(output_override)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        base_dir = Path("outputs/tables") / exp.scenario_type
+        output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     builder.to_csv(str(output_path))
     return output_path, len(df)
 
@@ -160,8 +164,12 @@ def _run_levinthal_experiment(
     )
     target_max_size = max_coalition_size or exp.max_coalition_size
     df = builder.build_table(max_size=target_max_size)
-    output_path = Path(output_override) if output_override else exp.output_path
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_override:
+        output_path = Path(output_override)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        base_dir = Path("outputs/tables") / exp.scenario_type
+        output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     builder.to_csv(str(output_path))
     return output_path, len(df)
 
@@ -206,9 +214,9 @@ def _run_ethiraj_experiment(
     players_modules = (
         true_modules if exp.ethiraj.players_basis == "true" else designer_modules
     )
-    prefix = "T" if exp.ethiraj.players_basis == "true" else "D"
+    # メンバー表記は単純なモジュール番号（0,1,2,...) に揃える
     module_defs = [
-        ModuleDefinition(name=f"{prefix}{idx}", bits=list(bits))
+        ModuleDefinition(name=str(idx), bits=list(bits))
         for idx, bits in enumerate(players_modules)
     ]
     builder = EthirajGameTableBuilder(
@@ -223,8 +231,12 @@ def _run_ethiraj_experiment(
     )
     target_max_size = max_coalition_size or exp.max_coalition_size
     df = builder.build_table(max_size=target_max_size)
-    output_path = Path(output_override) if output_override else exp.output_path
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_override:
+        output_path = Path(output_override)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        base_dir = Path("outputs/tables") / exp.scenario_type
+        output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     df.to_csv(output_path, index=False)
     return output_path, len(df)
 
