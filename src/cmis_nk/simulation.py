@@ -18,6 +18,7 @@ class SimulationConfig:
     local_search_scope: Literal["assigned", "all"] = "assigned"
     mode: Literal["generic", "lf_pure"] = "generic"
     rng_seed: Optional[int] = None
+    accept_equal: bool = True
 
     @classmethod
     def lf_pure(cls, rounds: int = 200, rng_seed: Optional[int] = None) -> "SimulationConfig":
@@ -28,6 +29,7 @@ class SimulationConfig:
             local_search_scope="assigned",
             mode="lf_pure",
             rng_seed=rng_seed,
+            accept_equal=False,
         )
 
 
@@ -165,7 +167,11 @@ class SimulationEngine:
         bit = int(self.rng.choice(search_space))
         candidate[bit] = 1 - candidate[bit]
         new_score = self.landscape.evaluate(candidate)
-        if new_score >= current_score:
+        if self.config.accept_equal:
+            accept = new_score >= current_score
+        else:
+            accept = new_score > current_score
+        if accept:
             return candidate
         return current_state
 

@@ -4,14 +4,15 @@ from .landscape import NKLandscape
 from .agents import Agent, create_agents
 from .networks import NetworkFactory
 from .simulation import SimulationConfig, SimulationEngine, SimulationResult
-from .game_table import (
+from .local_search import LocalSearchConfig, LocalSearchEngine, LocalSearchResult
+from .common.game_types import GameTableRecord
+from .lazer2007.game_table import (
     GameTableBuilder,
     AverageFinalScoreProtocol,
     GameValueProtocol,
 )
-from .local_search import LocalSearchConfig, LocalSearchEngine, LocalSearchResult
-from .levinthal_game import LevinthalGameTableBuilder, LevinthalPlayer
-from .ethiraj import (
+from .levinthal1997 import LevinthalGameTableBuilder, LevinthalPlayer
+from .ethiraj2004 import (
     build_true_modules,
     build_designer_modules,
     build_ethiraj_landscape,
@@ -31,6 +32,7 @@ __all__ = [
     "SimulationConfig",
     "SimulationEngine",
     "SimulationResult",
+    "GameTableRecord",
     "GameTableBuilder",
     "AverageFinalScoreProtocol",
     "GameValueProtocol",

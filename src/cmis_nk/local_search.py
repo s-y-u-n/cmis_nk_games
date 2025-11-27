@@ -11,7 +11,7 @@ from .landscape import NKLandscape
 @dataclass
 class LocalSearchConfig:
     max_steps: int = 250
-    stall_limit: int = 50
+    stall_limit: int = 50  # patience（改善なし連続ステップ上限）
     noise_accept_prob: float = 0.0
     init_strategy: Literal["random", "baseline", "perturb"] = "random"
     perturb_prob: float = 0.15
@@ -70,7 +70,8 @@ class LocalSearchEngine:
             candidate_state = current_state.copy()
             candidate_state[bit] = 1 - candidate_state[bit]
             candidate_fitness = float(self.landscape.evaluate(candidate_state))
-            improved = candidate_fitness > current_fitness
+            # Levinthal 仕様: 「これまでのベスト」を基準に改善判定
+            improved = candidate_fitness > best_fitness
             accept = improved
             if not accept and self.config.noise_accept_prob > 0.0:
                 if self.rng.random() < self.config.noise_accept_prob:
@@ -79,17 +80,17 @@ class LocalSearchEngine:
                 current_state = candidate_state
                 current_fitness = candidate_fitness
                 if improved:
+                    best_fitness = candidate_fitness
+                    best_state = candidate_state.copy()
                     stall_counter = 0
                 else:
                     stall_counter += 1
-                if candidate_fitness > best_fitness:
-                    best_fitness = candidate_fitness
-                    best_state = candidate_state.copy()
             else:
                 stall_counter += 1
         return LocalSearchResult(
             final_state=current_state,
-            final_fitness=current_fitness,
+            # 仕様上の「最終フィットネス」は探索中に到達したベスト値とみなす
+            final_fitness=best_fitness,
             best_fitness=best_fitness,
             steps=steps,
         )

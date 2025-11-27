@@ -22,13 +22,13 @@ class EthirajGameTableBuilder:
         landscape: NKLandscape,
         modules: Sequence[ModuleDefinition],
         baseline_state: np.ndarray,
-        mature_state: np.ndarray,
+        mature_states: Sequence[np.ndarray],
         scenario_note: str,
     ) -> None:
         self.landscape = landscape
         self.modules = list(modules)
         self.baseline_state = baseline_state.astype(np.int8)
-        self.mature_state = mature_state.astype(np.int8)
+        self.mature_states = [state.astype(np.int8) for state in mature_states]
         self.scenario_note = scenario_note
         self.baseline_fitness = float(self.landscape.evaluate(self.baseline_state))
 
@@ -36,12 +36,18 @@ class EthirajGameTableBuilder:
         records: List[dict[str, object]] = []
         coalition_id = 0
         for coalition in enumerate_coalitions(self.modules, max_size):
-            state = self.baseline_state.copy()
             member_names = tuple(module.name for module in coalition)
-            for module in coalition:
-                for bit in module.bits:
-                    state[bit] = self.mature_state[bit]
-            absolute_fitness = float(self.landscape.evaluate(state))
+            fitness_values: List[float] = []
+            for mature_state in self.mature_states:
+                state = self.baseline_state.copy()
+                for module in coalition:
+                    for bit in module.bits:
+                        state[bit] = mature_state[bit]
+                fitness_values.append(float(self.landscape.evaluate(state)))
+            if fitness_values:
+                absolute_fitness = float(np.mean(fitness_values))
+            else:
+                absolute_fitness = self.baseline_fitness
             value = absolute_fitness - self.baseline_fitness
             records.append(
                 {

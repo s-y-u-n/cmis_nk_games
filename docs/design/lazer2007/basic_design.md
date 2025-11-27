@@ -7,7 +7,7 @@
 | B: エージェント/タスク | `cmis_nk.agents` | Agent/TaskAssignment データ構造。プレイヤーID、担当ビット、skill を管理。 |
 | C: ネットワーク | `cmis_nk.networks` | NetworkFactory で line/complete/random/small-world グラフを生成。 |
 | D: ダイナミクス | `cmis_nk.simulation` | SimulationEngine がエージェント状態を更新し履歴を返す。LFモードをプリセットで提供。 |
-| E: ゲームテーブル | `cmis_nk.game_table` | GameTableBuilder が提携列挙、サブネットワーク構築、評価、CSV出力を行う。 |
+| E: ゲームテーブル | `cmis_nk.lazer2007.game_table` | GameTableBuilder が提携列挙、サブネットワーク構築、評価、CSV出力を行う。 |
 
 ## 2. データフロー
 1. `NKLandscape` が `evaluate(state)` を提供。

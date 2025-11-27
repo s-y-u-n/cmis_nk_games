@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -18,6 +18,13 @@ class LevinthalSettings:
     perturb_prob: float
     baseline_state: str
     players: Optional[List[Dict[str, Any]]]
+
+
+@dataclass
+class LazerSettings:
+    skill_profile: Dict[str, Tuple[float, float]]
+    bit_skills: Dict[int, str]
+    conflict_pairs: List[Tuple[int, int]]
 
 
 @dataclass
@@ -47,11 +54,13 @@ class ExperimentConfig:
     error_rate: float
     local_search_scope: str
     protocol: str
+    accept_equal: bool
     random_seed: Optional[int]
     landscape_seed: Optional[int]
     network_seed: Optional[int]
     max_coalition_size: Optional[int]
     output_path: Path
+    lazer: Optional[LazerSettings] = None
     levinthal: Optional[LevinthalSettings] = None
     ethiraj: Optional[EthirajSettings] = None
 
@@ -62,6 +71,7 @@ class ExperimentConfig:
             error_rate=self.error_rate,
             local_search_scope=self.local_search_scope,  # type: ignore[arg-type]
             rng_seed=self.random_seed,
+            accept_equal=self.accept_equal,
         )
 
 
@@ -76,9 +86,32 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
     output = raw.get("output", {})
     scenario = raw.get("scenario", {})
     scenario_type = scenario.get("type", "lazer2007").lower()
+    lazer_settings: Optional[LazerSettings] = None
     levinthal_settings: Optional[LevinthalSettings] = None
     ethiraj_settings: Optional[EthirajSettings] = None
-    ethiraj_settings: Optional[EthirajSettings] = None
+    if scenario_type == "lazer2007":
+        lazer_raw = raw.get("lazer", {})
+        skills_raw = lazer_raw.get("skills", {})
+        profile_raw = skills_raw.get("profile") or {}
+        bit_skills_raw = skills_raw.get("bit_skills") or {}
+        conflicts_raw = lazer_raw.get("conflicts", {}).get("pairs") or []
+
+        skill_profile: Dict[str, Tuple[float, float]] = {}
+        for name, rng in profile_raw.items():
+            if isinstance(rng, (list, tuple)) and len(rng) == 2:
+                low, high = rng
+                skill_profile[str(name)] = (float(low), float(high))
+        bit_skills: Dict[int, str] = {int(k): str(v) for k, v in bit_skills_raw.items()}
+        conflict_pairs: List[Tuple[int, int]] = [
+            (int(i), int(j)) for i, j in conflicts_raw
+        ]
+        if skill_profile or bit_skills or conflict_pairs:
+            lazer_settings = LazerSettings(
+                skill_profile=skill_profile,
+                bit_skills=bit_skills,
+                conflict_pairs=conflict_pairs,
+            )
+
     if scenario_type == "levinthal1997":
         search = raw.get("search", {})
         baseline_state = search.get("baseline_state")
@@ -121,11 +154,13 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
         error_rate=float(sim.get("error_rate", 0.0)),
         local_search_scope=sim.get("local_search_scope", "assigned"),
         protocol=game_table.get("protocol", "average_final_score"),
+        accept_equal=bool(sim.get("accept_equal", True)),
         random_seed=_maybe_int(seeds.get("random")),
         landscape_seed=_maybe_int(seeds.get("landscape")),
         network_seed=_maybe_int(seeds.get("network")),
         max_coalition_size=_maybe_int(game_table.get("max_coalition_size")),
         output_path=Path(output.get("path", "outputs/tables/lazer2007_baseline.csv")),
+        lazer=lazer_settings,
         levinthal=levinthal_settings,
         ethiraj=ethiraj_settings,
     )

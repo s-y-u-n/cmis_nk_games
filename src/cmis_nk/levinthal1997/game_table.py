@@ -6,10 +6,10 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
-from .game_table import GameTableRecord
-from .landscape import NKLandscape
-from .local_search import LocalSearchConfig, LocalSearchEngine
-from .utils import enumerate_coalitions
+from ..common.game_types import GameTableRecord
+from ..landscape import NKLandscape
+from ..local_search import LocalSearchConfig, LocalSearchEngine
+from ..utils import enumerate_coalitions
 
 
 @dataclass

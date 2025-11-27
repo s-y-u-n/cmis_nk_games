@@ -4,18 +4,18 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from .agents import Agent, create_agents
-from .config_loader import ExperimentConfig, load_experiment_config
-from .game_table import (
+from .config_loader import ExperimentConfig, LazerSettings, load_experiment_config
+from .lazer2007.game_table import (
     AverageFinalScoreProtocol,
     GameTableBuilder,
     GameValueProtocol,
 )
 from .landscape import NKLandscape
-from .levinthal_game import LevinthalGameTableBuilder, LevinthalPlayer
+from .levinthal1997 import LevinthalGameTableBuilder, LevinthalPlayer
 from .local_search import LocalSearchConfig
 from .networks import NetworkFactory
 from .simulation import SimulationConfig
-from .ethiraj import (
+from .ethiraj2004 import (
     build_true_modules,
     build_designer_modules,
     build_ethiraj_landscape,
@@ -23,7 +23,7 @@ from .ethiraj import (
     run_ethiraj_simulation,
     EthirajGameTableBuilder,
 )
-from .ethiraj.game_table import ModuleDefinition
+from .ethiraj2004.game_table import ModuleDefinition
 from .utils import bitstring_to_array
 
 
@@ -35,15 +35,31 @@ def protocol_from_name(name: str) -> GameValueProtocol:
 
 
 def build_landscape(exp_config: ExperimentConfig) -> NKLandscape:
+    skill_profile = None
+    bit_skills = None
+    conflict_pairs = None
+    if getattr(exp_config, "lazer", None):
+        skill_profile = exp_config.lazer.skill_profile
+        bit_skills = exp_config.lazer.bit_skills
+        conflict_pairs = exp_config.lazer.conflict_pairs
     return NKLandscape.from_random(
         N=exp_config.N,
         K=exp_config.K,
         seed=exp_config.landscape_seed or exp_config.random_seed,
+        skill_profile=skill_profile,
+        bit_skills=bit_skills,
+        conflict_pairs=conflict_pairs,
     )
 
 
 def build_agents(exp_config: ExperimentConfig) -> list[Agent]:
-    return create_agents(exp_config.N)
+    agents = create_agents(exp_config.N)
+    if getattr(exp_config, "lazer", None) and exp_config.lazer.bit_skills:
+        for agent in agents:
+            # プレイヤー = ビット = agent_id と仮定
+            bit_idx = agent.bits[0] if agent.bits else agent.agent_id
+            agent.skill = exp_config.lazer.bit_skills.get(bit_idx)
+    return agents
 
 
 def build_network(exp_config: ExperimentConfig, num_agents: int):
@@ -88,6 +104,14 @@ def _run_lazer_experiment(
     sim_config = build_simulation_config(exp)
     protocol = protocol_from_name(exp.protocol)
 
+    notes = (
+        f"scenario=lazer2007;N={exp.N};K={exp.K};"
+        f"rounds={exp.rounds};velocity={exp.velocity};error={exp.error_rate};"
+        f"runs={exp.runs};network_type={exp.network_type};"
+        f"landscape_seed={exp.landscape_seed};random_seed={exp.random_seed};"
+        f"network_seed={exp.network_seed}"
+    )
+
     builder = GameTableBuilder(
         landscape=landscape,
         agents=agents,
@@ -96,6 +120,7 @@ def _run_lazer_experiment(
         runs=exp.runs,
         protocol=protocol,
         rng_seed=exp.random_seed,
+        notes=notes,
     )
     target_max_size = max_coalition_size or exp.max_coalition_size
     df = builder.build_table(max_size=target_max_size)
@@ -160,20 +185,24 @@ def _run_ethiraj_experiment(
         seed=exp.landscape_seed or exp.random_seed,
     )
     baseline_state = bitstring_to_array(exp.ethiraj.baseline_state, exp.N)
-    population = EthirajFirmPopulation(
-        landscape=landscape,
-        designer_modules=designer_modules,
-        num_firms=exp.ethiraj.firms,
-        baseline_state=baseline_state,
-        rng_seed=exp.random_seed,
-    )
-    sim_result = run_ethiraj_simulation(
-        population=population,
-        rounds=exp.ethiraj.rounds,
-        recombination_interval=exp.ethiraj.recombination_interval,
-        recombination_mode=exp.ethiraj.recombination_mode,
-    )
-    mature_state = sim_result.best_state
+    # R ラン分のダイナミクスを独立に回し、それぞれの成熟設計候補 d* を集める
+    run_count = exp.runs if exp.runs > 0 else 1
+    mature_states: List[np.ndarray] = []
+    for run_idx in range(run_count):
+        population = EthirajFirmPopulation(
+            landscape=landscape,
+            designer_modules=designer_modules,
+            num_firms=exp.ethiraj.firms,
+            baseline_state=baseline_state,
+            rng_seed=(exp.random_seed or 0) + run_idx,
+        )
+        sim_result = run_ethiraj_simulation(
+            population=population,
+            rounds=exp.ethiraj.rounds,
+            recombination_interval=exp.ethiraj.recombination_interval,
+            recombination_mode=exp.ethiraj.recombination_mode,
+        )
+        mature_states.append(sim_result.best_state)
     players_modules = (
         true_modules if exp.ethiraj.players_basis == "true" else designer_modules
     )
@@ -186,7 +215,7 @@ def _run_ethiraj_experiment(
         landscape=landscape,
         modules=module_defs,
         baseline_state=baseline_state,
-        mature_state=mature_state,
+        mature_states=mature_states,
         scenario_note=(
             f"scenario=ethiraj2004;true={len(true_modules)};"
             f"designer={len(designer_modules)};basis={exp.ethiraj.players_basis}"

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>NKモデル実装設計方針（Ethiraj &amp; Levinthal 2004 再現＋ゲームテーブル生成）</title>
+  <title>NKモデル＋貢献度評価：モデリング方針（疑問ポイント整理版）</title>
   <style>
     body {
       margin: 0;
@@ -14,401 +14,216 @@
       box-sizing: border-box;
       width: 100vw;
       height: 100vh;
-      padding: 60px 80px;
+      padding: 56px 72px;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
     h1, h2, h3 {
       margin-top: 0;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     h1 { font-size: 40px; }
     h2 { font-size: 32px; }
     h3 { font-size: 24px; }
-    p { font-size: 20px; line-height: 1.6; margin: 8px 0; }
+    p  { font-size: 20px; line-height: 1.6; margin: 6px 0; }
     ul { font-size: 20px; line-height: 1.6; margin: 0 0 0 1.2em; padding: 0; }
-    li { margin-bottom: 6px; }
+    li { margin-bottom: 4px; }
     .small { font-size: 16px; opacity: 0.8; }
     .accent { color: #ffd85e; font-weight: 600; }
-    .two-column {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 40px;
-    }
     .box {
       border-left: 4px solid #ffd85e;
       padding-left: 16px;
+      margin-top: 8px;
     }
-    code { font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    code {
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
 
-<!-- 1. タイトル -->
+<!-- 1. タイトル：今回の論点を明示 -->
 <section class="slide" style="background:#111;">
-  <h1>NKモデル実装設計方針</h1>
-  <h3>― Ethiraj &amp; Levinthal (2004) の再現<br>＋ 貢献度分析用ゲームテーブル生成 ―</h3>
-  <p>
-    「NKモデル採用報告書」で整理した方針に沿って、<br>
-    Ethiraj &amp; Levinthal (2004) 型のモジュラリティ・モデルを実装し、<br>
-    最終的に<strong class="accent">貢献度指標分析用のゲームテーブル v(S)</strong>を出力する。
-  </p>
-</section>
-
-<!-- 2. 実装の全体ゴール -->
-<section class="slide" style="background:#141414;">
-  <h2>実装の全体ゴール</h2>
-  <ul>
-    <li>Ethiraj &amp; Levinthal (2004) の
-      <strong class="accent">「ほぼ分解可能システム＋モジュール誤認」</strong>
-      を再現する NK 型モデルを構築。
-    </li>
-    <li>複数企業（設計主体）の動学（局所探索＋リコンビネーション）をシミュレーション。</li>
-    <li>シミュレーション結果から、
-      <strong>「意思決定要素／モジュール」をプレイヤーとする協力ゲーム</strong>
-      を構成。
-    </li>
-    <li>各提携 S に対する特性関数値 v(S) を計算し、
-      <strong class="accent">ゲームテーブル（coalition × v(S)）</strong>
-      を出力。
-    </li>
-  </ul>
-</section>
-
-<!-- 3. システム状態と真の構造 -->
-<section class="slide" style="background:#172028;">
-  <h2>ステップ1：システム状態と「真の構造」の定義</h2>
-  <div class="two-column">
-    <div>
-      <h3>システム状態</h3>
-      <ul>
-        <li>意思決定要素数：<strong>N</strong></li>
-        <li>各要素は 0/1 のバイナリ：
-          <br><code>d = (d₁, …, d_N), d_i ∈ {0,1}</code>
-        </li>
-        <li>システムパフォーマンス：<strong>F(d) ∈ ℝ</strong></li>
-      </ul>
-    </div>
-    <div>
-      <h3>真のモジュール構造</h3>
-      <ul>
-        <li>真のモジュール数：<strong>M</strong></li>
-        <li>モジュール集合：
-          <br><code>𝓜 = {M₁, …, M_M},  ⊔ M_k = {1,…,N}</code>
-        </li>
-        <li>相互依存構造：<br>
-          <code>A_true ∈ {0,1}^{N×N}</code><br>
-          行 i, 列 j が 1 なら「j が i の貢献度に影響」。
-        </li>
-        <li>モジュール内は高密度、モジュール間は疎。</li>
-      </ul>
-    </div>
+  <h1>NKモデル＋貢献度評価のモデリング方針</h1>
+  <h3>― 依存構造・辞書 f<sub>i</sub>・チームスコア・シナジー／アナジー ―</h3>
+  <div class="box">
+    <p>このスライドは、あなたが疑問を持っていた次の点にフォーカスしている：</p>
+    <ul>
+      <li>「真のモジュール構造」とは何か？</li>
+      <li>相互依存行列と N<sub>i</sub>、辞書 f<sub>i</sub> にどう依存が入るのか？</li>
+      <li>ベースライン・最終設計・“モジュールを入れた”状態のスコアの定義</li>
+      <li>シナジー／アナジーは本当に発生するのか？</li>
+    </ul>
   </div>
 </section>
 
-<!-- 4. 局所貢献とシステムパフォーマンスの定義 -->
-<section class="slide" style="background:#101922;">
-  <h2>ステップ2：局所貢献 f_i と F(d) の定義</h2>
+<!-- 2. 真のモジュール構造と相互依存行列 -->
+<section class="slide" style="background:#151820;">
+  <h2>1. 真のモジュール構造と相互依存行列</h2>
+  <p>まず、「真のモジュール構造」を明確化する。</p>
   <ul>
-    <li>各意思決定 i に対して局所貢献関数：
-      <br><code>f_i : {0,1}^{|N_i|} → [0,1]</code>
+    <li>意思決定要素集合：<code>{1, 2, ..., N}</code></li>
+    <li>これらを、システム内部で<strong class="accent">本当に相互依存しているまとまり</strong>ごとに分割：
+      <br><code>𝓜 = {M₁, ..., M_M}</code>（真のモジュール集合）
     </li>
-    <li><code>N_i</code> は i を含む依存集合：
-      <br><code>N_i = { j | A_true(i,j)=1 }</code>
-    </li>
-    <li>実装：
-      <ul>
-        <li>各 i, 各パターン x ∈ {0,1}^{|N_i|} に対し、一様ランダムで値を割当。</li>
-        <li>これにより rugged なパフォーマンス地形を生成。</li>
-      </ul>
-    </li>
-    <li>システムパフォーマンス：
-      <br><code>F(d) = (1/N) · Σ_i f_i( d|_{N_i} )</code>
-    </li>
+    <li>各モジュール M<sub>k</sub> 内部の要素は<strong>相互依存が強い</strong>、モジュール間は<strong>依存が弱い</strong>。</li>
+  </ul>
+  <p>この構造を N×N の<strong>相互依存行列</strong>で表現する：</p>
+  <ul>
+    <li><code>A_true ∈ {0,1}^{N×N}</code> を用意し、<code>A_true[i,j]=1</code> を
+      「変数 j が変数 i の局所貢献に効く」と定義。</li>
+    <li>モジュール内ブロックは 1 が多く、モジュール間ブロックは 1 が少ない。
+      <br>これが「ほぼ分解可能」な構造になる。</li>
   </ul>
 </section>
 
-<!-- 5. デザイナーのモジュール認識（誤認を含む） -->
-<section class="slide" style="background:#181818;">
-  <h2>ステップ3：デザイナーのモジュール認識</h2>
+<!-- 3. N_i と辞書 f_i：依存が入るポイント -->
+<section class="slide" style="background:#101720;">
+  <h2>2. 依存集合 N<sub>i</sub> と辞書 f<sub>i</sub></h2>
+  <p>次に、あなたの最大の疑問だった「辞書に依存をどう入れているか」を整理する。</p>
   <ul>
-    <li>デザイナーが想定するモジュール数：<strong>K</strong></li>
-    <li>デザイナーのモジュール分割：
-      <br><code>𝓓 = {D₁, …, D_K}</code>（ほぼ均等サイズ）
+    <li>相互依存行列から、各要素 i の依存集合を定義：
+      <br><code>N_i = { j | A_true[i,j] = 1 }</code></li>
+    <li>局所貢献関数：
+      <br><code>f_i : {0,1}^{|N_i|} → [0,1]</code></li>
+    <li>ここでの重要点：
+      <div class="box">
+        <p>「依存を辞書に入れる」とは、<br>
+        <strong class="accent">辞書 f<sub>i</sub> の入力キーとして N<sub>i</sub> 上のビット列を使う</strong>こと。</p>
+      </div>
     </li>
-    <li>真の構造との関係：
-      <ul>
-        <li><code>K = M</code>：真の構造を正しく認識</li>
-        <li><code>K &lt; M</code>：統合し過ぎ（undermodularity）</li>
-        <li><code>K &gt; M</code>：過度のモジュール化（overmodularity）</li>
-      </ul>
-    </li>
-    <li>デザイナーは、自分のモジュール <code>D_k</code> ごとに性能指標
-      <code>F_k(d)</code> を使用：
-      <br><code>F_k(d) = (1/|D_k|) · Σ_{i∈D_k} f_i( d|_{N_i} )</code>
-    </li>
+  </ul>
+  <p>つまり：</p>
+  <ul>
+    <li>入力キー = <code>(d_j)_{j∈N_i}</code></li>
+    <li>依存先のビットが変わるとキーが変わる → f<sub>i</sub>が返す値も変わる</li>
+    <li>これにより、i の寄与が j,k,… の状態に依存する＝相互作用が入る。</li>
   </ul>
 </section>
 
-<!-- 6. マルチ企業環境とシミュレーション単位 -->
-<section class="slide" style="background:#151c24;">
-  <h2>ステップ4：マルチ企業環境の定義</h2>
-  <ul>
-    <li>企業数：<strong>Firms = L</strong></li>
-    <li>各企業 ℓ は自社設計 <code>d^{(ℓ)}</code> を保有。</li>
-    <li>全企業について、時間ステップ t=0,1,2,… に対し動学を回す。</li>
-    <li>シミュレーションの単位：
-      <ul>
-        <li>「1 ラン（run）」＝パフォーマンス地形と初期状態を固定した一連の時間発展。</li>
-        <li>統計的安定性のため、run を多数繰り返し平均を取る。</li>
-      </ul>
-    </li>
-    <li>出力：
-      <ul>
-        <li>時系列 {F(d^{(ℓ)}_t)}、および最終設計 <code>d^{(ℓ)}_T</code>。</li>
-        <li>後続のゲームテーブル生成で使用。</li>
-      </ul>
-    </li>
-  </ul>
-</section>
-
-<!-- 7. 適応プロセス①：局所探索 -->
-<section class="slide" style="background:#11171f;">
-  <h2>ステップ5：局所探索アルゴリズム</h2>
-  <ul>
-    <li>各時間ステップ t で、各企業 ℓ が以下を実行：</li>
-    <li>
-      <strong>1. モジュール単位での探索</strong><br>
-      各モジュール <code>D_k</code> について：
-      <ul>
-        <li>ランダムに i ∈ D_k を 1 つ選ぶ。</li>
-        <li><code>d′</code>：i のビットを反転した案（0↔1）</li>
-        <li>モジュール性能を比較：
-          <br><code>F_k(d′) &gt; F_k(d) なら d ← d′ を採用</code>
-        </li>
-      </ul>
-    </li>
-    <li>
-      <strong>2. 並列更新</strong><br>
-      全モジュール D₁,…,D_K について上記を並列的に実施。
-    </li>
-    <li>結果として、各企業は
-      <strong class="accent">自モジュール指標 F_k</strong> を基準に局所的改善を続ける。
-    </li>
-  </ul>
-</section>
-
-<!-- 8. 適応プロセス②：リコンビネーション -->
-<section class="slide" style="background:#10151d;">
-  <h2>ステップ6：リコンビネーション戦略</h2>
-  <ul>
-    <li>一定ステップごと（例：毎ステップ or 数ステップごと）に、<br>
-      モジュールの「入替・模倣」を実施。
-    </li>
-    <li>実装上は 3 パターンをスイッチ可能にする：</li>
-    <li>
-      <strong>1. Firm-level selection</strong>
-      <ul>
-        <li>企業全体性能 <code>F(d^{(ℓ)})</code> に基づき上位企業を選定。</li>
-        <li>ランダムに選んだモジュール k について、<br>
-          上位企業の <code>D_k</code> を丸ごとコピー。
-        </li>
-      </ul>
-    </li>
-    <li>
-      <strong>2. Module-level selection</strong>
-      <ul>
-        <li>モジュール性能 <code>F_k(d^{(ℓ)})</code> に基づき、<br>
-          各モジュールごとにベスト企業を選定しコピー。</li>
-      </ul>
-    </li>
-    <li>
-      <strong>3. Firm + Module selection</strong>
-      <ul>
-        <li>全体性能で上位企業集合を絞り、その中でモジュール性能が高いものを選択。</li>
-      </ul>
-    </li>
-  </ul>
-</section>
-
-<!-- 9. ゲームテーブルの設計方針（プレイヤー定義） -->
+<!-- 4. f_i の具体数値例：依存が効いていることを“見る” -->
 <section class="slide" style="background:#171717;">
-  <h2>ステップ7：ゲームテーブルの設計方針①</h2>
-  <h3>プレイヤー定義と粒度</h3>
+  <h2>3. f<sub>i</sub> の具体数値例</h2>
+  <p>例：i=5, 依存集合 N₅ = {5,7,8} の場合。</p>
+  <p>入力は 3ビット列 (d₅, d₇, d₈)、全 2³=8通りに乱数で値を割り当てる：</p>
   <ul>
-    <li>貢献度分析のプレイヤー集合 N の候補：</li>
-    <li>
-      <strong>案A：意思決定要素レベル</strong>
-      <ul>
-        <li>プレイヤー：各意思決定 i = 1,…,N。</li>
-        <li>利点：細粒度な相互作用を分析可能。</li>
-        <li>欠点：2^N が大きくなり計算コスト増。</li>
-      </ul>
-    </li>
-    <li>
-      <strong class="accent">案B：モジュールレベル（推奨）</strong>
-      <ul>
-        <li>プレイヤー：モジュール単位（真の構造 or デザイナー構造）。</li>
-        <li>例：
-          <code>N_players = {1,…,M}</code> または <code>{1,…,K}</code>
-        </li>
-        <li>利点：
-          <ul>
-            <li>提携数が 2^M, 2^K で抑えられる。</li>
-            <li>モジュラリティの議論と自然に対応。</li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li>本実装では、<strong>モジュールをプレイヤーとするゲーム</strong>を基本とし、<br>
-      必要に応じて一部ランを「要素レベル」で詳細分析する構成とする。
-    </li>
+    <li>(0,0,0) → 0.12</li>
+    <li>(0,0,1) → 0.85</li>
+    <li>(0,1,0) → 0.34</li>
+    <li>(0,1,1) → 0.90</li>
+    <li>(1,0,0) → 0.11</li>
+    <li>(1,0,1) → 0.48</li>
+    <li>(1,1,0) → 0.77</li>
+    <li>(1,1,1) → 0.23</li>
+  </ul>
+  <div class="box">
+    <p>ここでのポイント：</p>
+    <ul>
+      <li>d₅=1 を固定しても、d₇,d₈ の変化で f₅ の値は大きく変わる。</li>
+      <li>つまり、<strong>「d₅ の効果」は単独では定義されず、(d₇,d₈) との組合せに依存する。</strong></li>
+      <li>この「入力キーに依存先ビットを含める」だけで、シナジー／アナジーの素材が生成される。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5. システム性能 F(d) と「線形ではない」こと -->
+<section class="slide" style="background:#131820;">
+  <h2>4. システム性能 F(d) の定義</h2>
+  <p>任意の設計 d ∈ {0,1}^N に対してシステム性能を：</p>
+  <p><code>F(d) = (1/N) · Σ_i f_i(d|_{N_i})</code></p>
+  <ul>
+    <li>見た目は「平均」なので線形に見える。</li>
+    <li>しかし、各項 f<sub>i</sub> が「依存ビット列 → 非線形値」の辞書なので、
+      <strong>F 全体としては強い非線形・強い相互作用を持つ</strong>。</li>
+  </ul>
+  <div class="box">
+    <p>重要な整理：</p>
+    <ul>
+      <li>線形重みモデル：<code>F(d) = Σ w_i d_i</code> → 相互作用なし。</li>
+      <li>今回の NK 型モデル：
+        <br><code>F(d) = Σ f_i(d_i, 依存先...)</code> → 組合せ依存が強烈。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 6. ベースライン・最終設計・“モジュール導入”状態 -->
+<section class="slide" style="background:#171a22;">
+  <h2>5. ベースライン／最終設計／モジュール導入状態</h2>
+  <p>貢献度評価で問題になっていた「チームスコア」は、次の3種類の設計を区別するとクリアになる。</p>
+  <ul>
+    <li><strong>ベースライン設計 d⁰</strong>：
+      <br>最も単純には <code>d⁰ = (0,...,0)</code> とし、<code>F(d⁰)</code> を基準スコアとする。</li>
+    <li><strong>最終設計 d*</strong>：
+      <br>NK ダイナミクスを回した結果、ある企業（または代表企業）が到達した設計。<code>F(d*)</code> は「実際のチーム成績」に相当。</li>
+    <li><strong>モジュール C を「入れた」設計 d^C</strong>：
+      <br>モジュール C が担当する意思決定ビットだけ d* の値を採用し、それ以外のビットは d⁰ に戻したもの。
+      <br>直感的には「モジュール C だけを導入した世界の設計」。</li>
   </ul>
 </section>
 
-<!-- 10. ゲームテーブルの設計方針（v(S)の定義） -->
-<section class="slide" style="background:#121820;">
-  <h2>ステップ8：ゲームテーブルの設計方針②</h2>
-  <h3>特性関数 v(S) の定義案</h3>
+<!-- 7. チームスコア v(C) の定義と解釈 -->
+<section class="slide" style="background:#121720;">
+  <h2>6. チームスコア v(C) の定義</h2>
+  <p>モジュール集合 C をプレイヤーとみなす協力ゲームの特性関数は：</p>
   <ul>
-    <li>基準状態：
-      <ul>
-        <li>ベースライン設計 d⁰（例：全て 0 のベクトル）。</li>
-        <li>最終的な「成熟設計」 d*（例：十分に時間を進めた後の平均）。</li>
-      </ul>
-    </li>
-    <li>
-      <strong>モジュールプレイヤー C ⊂ N_players が参加する状態の構成：</strong>
-      <ul>
-        <li>モジュール m ∈ C に属する意思決定は、d* の値を採用。</li>
-        <li>モジュール m ∉ C に属する意思決定は、d⁰ の値を採用。</li>
-        <li>得られた設計を d^C と表記。</li>
-      </ul>
-    </li>
-    <li>
-      <strong class="accent">特性関数の定義：</strong>
-      <br><code>v(C) = F(d^C) − F(d⁰)</code>
-    </li>
-    <li>この v(C) により、
-      <strong>「どのモジュール集合がどれだけ性能を押し上げるか」</strong>
-      を協力ゲームの枠組みで表現。
-    </li>
+    <li>まず d^C に対して性能を計算：
+      <br><code>F(d^C)</code> = 「モジュール C を導入した世界のスコア」</li>
+    <li>特性関数値：
+      <br><code>v(C) = F(d^C) − F(d⁰)</code></li>
   </ul>
+  <div class="box">
+    <p>ここで：</p>
+    <ul>
+      <li><strong>企業の実スコア</strong>：<code>F(d*)</code>（1つしかない）</li>
+      <li><strong>ゲーム上のチームスコア</strong>：各 C についての <code>v(C)</code></li>
+      <li>v(C) は「モジュール C を入れたときの成果」を、ベースラインからの上振れとして測ったもの。</li>
+    </ul>
+  </div>
+  <p>この v(C) テーブルを元に、Shapley 値等の貢献度指標を計算する。</p>
 </section>
 
-<!-- 11. ゲームテーブルのスキーマ -->
-<section class="slide" style="background:#151515;">
-  <h2>ステップ9：ゲームテーブルのデータ構造</h2>
+<!-- 8. シナジー／アナジーが自然発生する理由 -->
+<section class="slide" style="background:#171717;">
+  <h2>7. シナジー／アナジーは発生するか？</h2>
+  <p>シナジー／アナジーの定義：</p>
   <ul>
-    <li>テーブル単位：
-      <ul>
-        <li>1 シミュレーション条件（N, M, K, 依存構造, 戦略 etc.）ごとに 1 テーブル。</li>
-      </ul>
-    </li>
-    <li>想定カラム例：</li>
-    <li>
-      <code>
-        scenario_id<br>
-        coalition_id     （整数 ID）<br>
-        coalition_bits   （bitstring, 例: "1010"）<br>
-        coalition_set    （集合表現, 例: "{1,3}"）<br>
-        v_value          （v(S) = F(d^S) − F(d⁰)）<br>
-        F_dS             （F(d^S) の絶対値）<br>
-        snapshot_time    （d* を取得した時刻 or ラン ID）<br>
-      </code>
-    </li>
-    <li>別テーブルとして、Shapley 値等の貢献度指標を格納：
-      <br><code>shapley_value(module_id), interaction_index(module_i, module_j) 等</code>
-    </li>
+    <li>シナジー（正の相互作用）：
+      <br><code>v({A,B}) > v({A}) + v({B})</code></li>
+    <li>アナジー（負の相互作用）：
+      <br><code>v({A,B}) < v({A}) + v({B})</code></li>
   </ul>
+  <p>今回のモデルでは以下の理由で、これらが自然に（高確率で）発生する：</p>
+  <ul>
+    <li>f<sub>i</sub> の入力キーが N<sub>i</sub> 上のビット列であり、複数要素の組合せで値が変わる。</li>
+    <li>真のモジュール構造に基づく A_true により、「どのモジュール同士が絡み合うか」が決まっている。</li>
+    <li>モジュール C, D を別々に導入した場合と、C ∪ D を同時導入した場合で、辞書 f<sub>i</sub> が参照するパターンが変わる。</li>
+  </ul>
+  <div class="box">
+    <p>結果：</p>
+    <ul>
+      <li>ある組合せでは v(C∪D) が v(C)+v(D) を上回る（補完的シナジー）。</li>
+      <li>別の組合せでは v(C∪D) が v(C)+v(D) を下回る（干渉＝アナジー）。</li>
+      <li>これは追加の“シナジー用パラメータ”を入れなくても、辞書＋依存構造だけで自動的に発生する。</li>
+    </ul>
+  </div>
 </section>
 
-<!-- 12. 実装コンポーネント分割 -->
-<section class="slide" style="background:#11171e;">
-  <h2>ステップ10：実装コンポーネント構成</h2>
-  <ul>
-    <li>
-      <strong>1. Landscape Generator</strong>
-      <ul>
-        <li>N, M, 相互依存密度などから A_true と f_i を生成。</li>
-        <li>乱数シードを管理し再現性を確保。</li>
-      </ul>
-    </li>
-    <li>
-      <strong>2. Designer View Generator</strong>
-      <ul>
-        <li>K とモジュール分割 𝓓 を生成（K の誤認度をパラメータ化）。</li>
-      </ul>
-    </li>
-    <li>
-      <strong>3. Dynamics Engine</strong>
-      <ul>
-        <li>局所探索ロジック。</li>
-        <li>リコンビネーション（3 戦略切替可能）。</li>
-        <li>マルチ企業の並列更新制御。</li>
-      </ul>
-    </li>
-    <li>
-      <strong>4. Snapshot &amp; Game Builder</strong>
-      <ul>
-        <li>指定時刻の d*, d⁰ を取得。</li>
-        <li>d^C の構成と F(d^C)、v(C) の一括計算。</li>
-        <li>ゲームテーブルと貢献度指標算出のための中間データを出力。</li>
-      </ul>
-    </li>
-  </ul>
-</section>
-
-<!-- 13. パラメータ設計と実験計画 -->
-<section class="slide" style="background:#121820;">
-  <h2>ステップ11：パラメータ設計と実験計画</h2>
-  <ul>
-    <li>主要パラメータ：
-      <ul>
-        <li>N：意思決定数（例：18, 24 等）</li>
-        <li>M：真のモジュール数（例：3, 4）</li>
-        <li>K：デザイナーのモジュール数（M±Δ）</li>
-        <li>L：企業数（例：20 or 100）</li>
-        <li>依存密度（モジュール内/モジュール間）</li>
-        <li>局所探索の頻度、リコンビネーション頻度</li>
-        <li>シミュレーション時間 T、run 数 R</li>
-      </ul>
-    </li>
-    <li>実験設計：
-      <ul>
-        <li>（基準ケース）K = M、局所探索＋Module-level selection。</li>
-        <li>（誤認ケース）K&lt;M, K&gt;M を系統的に変化させる。</li>
-        <li>各条件ごとにゲームテーブルを生成し、<br>
-          貢献度指標の振る舞いを比較。
-        </li>
-      </ul>
-    </li>
-  </ul>
-</section>
-
-<!-- 14. まとめと次ステップ -->
+<!-- 9. 全体像のまとめ：疑問への対応 -->
 <section class="slide" style="background:#111;">
-  <h2>まとめと今後のタスク</h2>
+  <h2>8. 疑問への対応関係まとめ</h2>
   <ul>
-    <li>Ethiraj &amp; Levinthal 型の NK モデルを、
-      <strong class="accent">「モジュール誤認＋動学」</strong>という観点で実装。
-    </li>
-    <li>最終アウトプットは、
-      <strong>モジュールをプレイヤーとする協力ゲーム v(S)</strong> のゲームテーブル。</li>
-    <li>このテーブルを入力として、
-      <strong>Shapley 値・相互作用指数・シナジー指標</strong>
-      を適用し、<br>
-      「適切／不適切なモジュール設計が貢献度評価に与える影響」を分析可能。
-    </li>
-    <li>次ステップ：
-      <ul>
-        <li>実装言語・ライブラリ選定（例：Python＋NumPy/Pandas）。</li>
-        <li>Landscape Generator と Dynamics Engine のプロトタイプ作成。</li>
-        <li>小規模 N, M, K で動作確認後、ゲームテーブル生成パイプラインを接続。</li>
-      </ul>
-    </li>
+    <li><strong>Q1: 真のモジュール構造とは？</strong><br>
+      A: 相互依存行列 A_true に対応する「本物のブロック構造」であり、性能 F(d) を決める根本の相互作用グループ。</li>
+    <li><strong>Q2: 依存は辞書にどう入る？</strong><br>
+      A: 各 f<sub>i</sub> の入力キーを N<sub>i</sub> 上のビット列にし、依存先ビットが変わるとキーが変わる＝返す値が変わるようにしている。</li>
+    <li><strong>Q3: チームスコアとは何か？</strong><br>
+      A: モジュール集合 C だけ d* の値を採用し、他は d⁰ に戻した設計 d^C の性能 F(d^C)（ベースラインとの差分 v(C)）を指す。</li>
+    <li><strong>Q4: シナジー／アナジーは発生する？</strong><br>
+      A: f<sub>i</sub> の組合せ依存と A_true により、v(C∪D) ≷ v(C)+v(D) が自然に生じるため、発生する。</li>
   </ul>
+  <p class="small">このモデリング方針を前提に、ゲームテーブル v(C) を生成し、Shapley 値・相互作用指数・シナジー指標を適用することで、モジュール設計と貢献度評価の関係を分析する。</p>
 </section>
 
 </body>

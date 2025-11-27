@@ -3,22 +3,35 @@
 ## 1. モジュール構成とデータモデル
 | レイヤ | モジュール | 役割 |
 | --- | --- | --- |
-| 真の構造 | `cmis_nk.ethiraj.landscape` | モジュール密度を指定した依存行列と局所貢献テーブルを生成。|
-| デザイナー視点 | `cmis_nk.ethiraj.designer` | K 個の想定モジュールを生成し、モジュール性能 F_k を計算する。|
-| ダイナミクス | `cmis_nk.ethiraj.dynamics` | L 社 × K モジュールの局所探索＋リコンビネーションを駆動。|
-| ゲーム化 | `cmis_nk.ethiraj.game_table` | ベースライン d⁰ と成熟設計 d* から v(S) を算出。|
-| CLI/統合 | `cmis_nk.pipeline` | scenario=ethiraj2004 を読み取り、上記コンポーネントを組み合わせて CSV を出力。|
+| 真の構造 | `cmis_nk.ethiraj2004.landscape` | 真のモジュール構造（M個）と、それに基づく依存構造・局所貢献テーブルを生成。|
+| デザイナー視点 | `cmis_nk.ethiraj2004.landscape` | K 個のデザイナーモジュール（均等割り）を生成し、後続の局所探索・リコンビネーションに用いる。|
+| ダイナミクス | `cmis_nk.ethiraj2004.dynamics` | L 社 × K モジュールの局所探索＋リコンビネーションを駆動し、最終的な成熟設計 d* 候補を得る。|
+| ゲーム化 | `cmis_nk.ethiraj2004.game_table` | ベースライン d⁰ と成熟設計 d*（またはその複数 run の集合）から v(S) を算出しゲームテーブルを構成。|
+| CLI/統合 | `cmis_nk.pipeline` | `scenario.type=ethiraj2004` を読み取り、上記コンポーネントを組み合わせて CSV を出力。|
 
-## 2. 流れ
-1. **ランドスケープ生成**: N, M, intra_density, inter_density, seeds を入力して `EthirajLandscape` (NKLandscape を再利用しつつモジュール毎に依存先を制御)。
-2. **デザイナー視点**: K と分割方法（等分 or 設定ファイル）に従って `DesignerModules` を構築。
-3. **初期化**: L 社分の設計行列 D ∈ {0,1}^{L×N} を乱数で生成。d⁰ はゼロベクトル or 設定で指定。
-4. **ラウンド**: for t in 1..T:
-   - 各企業が各モジュールごとにビットをランダム選択 → toggle → F_k 改善なら採用。
-   - 既定頻度でリコンビネーション（firm/module/hybrid）を適用。
-   - 履歴を蓄積（平均性能など）。
-5. **スナップショット取得**: 終了時刻（または指定ラウンド）で各モジュールの最良企業を記録し、成熟設計 d* を決定（例: 全体性能が最大の企業）。
-6. **ゲームテーブル**: プレイヤ＝モジュール集合 P を定義し、すべての S ⊆ P に対して d^S を構築し F(d^S)、v(S) を計算。
+## 2. アルゴリズム概要（仕様ステップ対応）
+
+下表は、論文ベースの仕様ステップ（0〜16）を、本実装の関数・クラスに対応付けたものです。
+
+| ステップ | 処理名 | 実装上の対応 | 備考 |
+| --- | --- | --- | --- |
+| 0 | パラメータ設定 | `EthirajSettings`（`config_loader.ExperimentConfig.ethiraj`）と `ExperimentConfig` 全体で N, M, K, intra/inter, L, T, R 等を保持 | R（runs）は現状 `ExperimentConfig.runs` で管理（デフォルト 1） |
+| 1 | 真のモジュール構造生成 | `build_true_modules(N, M)`（`ethiraj2004.landscape`）で N ビットを M グループにほぼ均等分割 | 余りは先頭モジュールから 1 つずつ加算されるイメージ |
+| 2 | 相互依存行列 A_true の生成 | `build_ethiraj_landscape` 内で、各ビット i についてモジュール内・間にバイアスをかけて K 個の依存先をサンプリングし、暗黙の A_true を構成 | 行 i で依存先 j を選ぶことが A_true[i,j]=1 に相当 |
+| 3 | 依存集合 N_i の構築 | `NKLandscape.dependencies[i]` + 自己 i を組み合わせて N_i を定義 | N_i のサイズは一定（K+1）だが、仕様の一般形の特殊ケースとして実装 |
+| 4 | 局所貢献 f_i の生成 | `NKLandscape.from_random` が各 i, 各ビット列パターンに一様乱数値を割り当て、`tables[i]` として保持 | ビット列→スコアの辞書を ndarray で実装 |
+| 5 | 性能関数 F の定義 | `NKLandscape.evaluate(state)` が F(d) = (1/N) Σ_i f_i(d\|_{N_i}) を計算 | 他シナリオと共通実装 |
+| 6 | デザイナー構造 𝓓 の生成 | `build_designer_modules(N, K)` で N ビットを K モジュールにほぼ均等分割し、`designer_modules` として利用 | デザイナーは真の構造を知らない前提 |
+| 7 | ベースライン設計 d⁰ の決定 | `EthirajSettings.baseline_state`（YAML の `ethiraj.baseline_state`。未指定なら全 0）から `bitstring_to_array` で d⁰ を生成し、F(d⁰) を `EthirajGameTableBuilder` 内で評価 | F(d⁰) はテーブル内の `baseline_fitness` カラムに格納 |
+| 8 | 初期企業集団の生成 | `EthirajFirmPopulation.__init__` が L×N のランダム 0/1 行列として {d^{(ℓ)}\_0} を生成 | 初期状態の揺らし方を将来的に拡張可能 |
+| 9 | 時間ステップループ | `run_ethiraj_simulation` が t=0,…,T−1 について局所探索＋リコンビネーションをループ | `EthirajSettings.rounds` が T に対応 |
+| 10 | 局所探索（モジュール別） | `EthirajFirmPopulation.local_search_step` が「各企業 ℓ × 各 D_k」で 1 ビット反転案を試し、`_module_fitness` に基づき F_k(d′) > F_k(d) のとき採用 | F_k(d) はモジュール内ビット i の局所貢献平均で近似 |
+| 11 | リコンビネーション | `EthirajFirmPopulation.recombine` が mode に応じて `_recombine_firm_level`／`_recombine_module_level`／ハイブリッドを実行 | 発火頻度は `recombination_interval` で制御 |
+| 12 | d* の取得 | `run_ethiraj_simulation` が最終時刻の全企業スコアを比較し、F(d^{(ℓ)}\_T) 最大の企業の設計を best_state（成熟設計候補 d*）として返す | 現状は「代表企業 = 最良企業」の方式を採用 |
+| 13 | d^C の構成 | `EthirajGameTableBuilder.build_table` が、各提携 C について d⁰ からスタートし、モジュール C に属するビットのみ d* の値に入れ替えて d^C を構成 | プレイヤ集合 P は `players_basis` に応じて真のモジュール or デザイナーモジュール |
+| 14 | v(C) の計算 | 同上で F(d^C) を計算し、v(C) = F(d^C) − F(d⁰) を `v_value` としてテーブルに格納 | ゲームテーブルは CSV で `outputs/tables/ethiraj2004_baseline.csv` に保存 |
+| 15 | 貢献度指標 | 現実装では Shapley 等の貢献度計算は実施せず、本ゲームテーブルを外部ツールの入力とする | 仕様どおり「別フェーズ扱い」 |
+| 16 | 結果保存・可視化 | 本フレームワークはゲームテーブルと簡易ログ（履歴）は生成するが、可視化はノートブック等に委ねる | 必要であれば `history` を CSV に出力する拡張が可能 |
 
 ## 3. 主要クラス概要
 - `EthirajLandscapeConfig`: N, M, intra_density, inter_density, seed。

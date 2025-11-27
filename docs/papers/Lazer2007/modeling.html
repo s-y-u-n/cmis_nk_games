@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>NKモデル × ネットワーク探索・活用 – モデル設計方針スライド</title>
+  <title>NK × Lazer2007 モデリング方針（疑問ポイント集中版）</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -26,7 +26,7 @@
     h2 { font-size: 26px; }
     h3 { font-size: 20px; }
     ul {
-      margin-top: 8px;
+      margin-top: 10px;
       padding-left: 1.2em;
     }
     li { margin-bottom: 6px; }
@@ -35,18 +35,21 @@
       color: #666;
       margin-top: 16px;
     }
+    .qabox {
+      border-left: 4px solid #4f46e5;
+      background: #f5f3ff;
+      padding: 10px 14px;
+      margin: 12px 0;
+      border-radius: 6px;
+    }
+    .qabox strong {
+      display: inline-block;
+      min-width: 3em;
+    }
     .highlight {
       background: #fffbe6;
-      padding: 3px 6px;
-      border-radius: 4px;
-    }
-    .badge {
-      display: inline-block;
-      font-size: 12px;
       padding: 2px 6px;
-      border-radius: 999px;
-      background: #eef2ff;
-      margin-right: 4px;
+      border-radius: 4px;
     }
     .cols {
       display: flex;
@@ -55,347 +58,265 @@
     .col {
       flex: 1;
     }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      background: #f3f4f6;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- 1. タイトル -->
+  <!-- 1. タイトル＆目的 -->
   <section class="slide">
-    <h1>NKモデル × ネットワーク探索・活用</h1>
-    <h3>モデル設計方針と貢献度ゲームテーブル生成</h3>
+    <h1>NK × Lazer2007 モデリング方針</h1>
+    <h3>「プレイヤー」「スコア」「v(S)」「実装差分」に絞った整理</h3>
+    <p>この資料では、次の疑問にピンポイントで答える形でモデリング方針を整理する。</p>
     <ul>
-      <li>Lazer &amp; Friedman (2007) のシミュレーションを<a class="highlight">再現可能</a>な形で実装</li>
-      <li>同一フレームワークから<a class="highlight">協力ゲームの特性関数 v(S)</a>を生成し、貢献度指標分析に接続</li>
-      <li>NKモデル採用報告書で整理した方針を、実装可能なレベルに落とし込む</li>
-    </ul>
-    <p class="small">
-      ゴール：ネットワーク構造・複雑性・個人差・相性を統合的に扱える実験プラットフォームを構築する。
-    </p>
-  </section>
-
-  <!-- 2. ゴールの整理 -->
-  <section class="slide">
-    <h2>ゴールとアウトプット</h2>
-    <h3>ゴール</h3>
-    <ul>
-      <li>G1：Lazer-Friedman 型「探索／活用 × ネットワーク構造」の挙動を NK で再現</li>
-      <li>G2：プレイヤー集合 N に対して協力ゲーム
-        <span class="highlight">v: 2<sup>N</sup> → ℝ</span>
-        のゲームテーブルを自動生成
-      </li>
-      <li>G3：Shapley値など貢献度指標を計算し、「技量差・相性・構造」の影響を評価</li>
-    </ul>
-    <h3>最終アウトプット</h3>
-    <ul>
-      <li>全提携 S ⊆ N に対する v(S) を持つ <strong>ゲームテーブル（CSV / DataFrame）</strong></li>
-      <li>実験条件（N, K, ネットワーク種別, velocity, error, skill構成 等）のメタデータ</li>
+      <li>この論文における <span class="highlight">プレイヤー</span> は何を指すのか？</li>
+      <li>毎ステップで使う <span class="highlight">スコア V(d)</span> はどう生成／更新されるのか？</li>
+      <li>協力ゲームの <span class="highlight">v(S)</span> をシミュレーションレベルでどう定義しているのか？</li>
+      <li>仕様と現在の実装で、どこが完全一致で、どこが拡張前提か？</li>
     </ul>
   </section>
 
-  <!-- 3. レイヤ構造の全体像 -->
+  <!-- 2. 疑問ポイントの整理 -->
   <section class="slide">
-    <h2>全体アーキテクチャ：5レイヤ構造</h2>
-    <ul>
-      <li><span class="badge">Layer A</span> NKランドスケープ（環境）
-        <ul>
-          <li>Nビット・K依存の状態空間とスコア関数 V(d)</li>
-        </ul>
-      </li>
-      <li><span class="badge">Layer B</span> エージェント＆タスク割当
-        <ul>
-          <li>エージェントと担当ビット・スキル属性の定義</li>
-        </ul>
-      </li>
-      <li><span class="badge">Layer C</span> ネットワーク構造
-        <ul>
-          <li>line / complete / random / small-world など</li>
-        </ul>
-      </li>
-      <li><span class="badge">Layer D</span> 探索・活用ダイナミクス
-        <ul>
-          <li>模倣＋近傍探索、velocity・error パラメータ</li>
-        </ul>
-      </li>
-      <li><span class="badge">Layer E</span> ゲーム化 &amp; ゲームテーブル生成
-        <ul>
-          <li>提携 S ごとに v(S) を実験的に測定</li>
-        </ul>
-      </li>
-    </ul>
-    <p class="small">
-      Lazer-Friedman「純正設定」はこの5レイヤの特殊ケースとして実装する。
-    </p>
-  </section>
-
-  <!-- 4. Layer A：NKランドスケープ設計 -->
-  <section class="slide">
-    <h2>Layer A：NKランドスケープ（環境）</h2>
-    <div class="cols">
-      <div class="col">
-        <h3>数理定義</h3>
-        <ul>
-          <li>状態：
-            <span class="highlight">d = (d<sub>1</sub>, …, d<sub>N</sub>) ∈ {0,1}<sup>N</sup></span>
-          </li>
-          <li>依存先：Dep(i) = {i<sub>1</sub>, …, i<sub>K</sub>}</li>
-          <li>局所スコア：
-            c<sub>i</sub> = f<sub>i</sub>(d<sub>i</sub>, d<sub>i1</sub>, …, d<sub>iK</sub>) ∈ [0,1]
-          </li>
-          <li>全体スコア：
-            V(d) = (1/N) Σ c<sub>i</sub>
-          </li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>実装イメージ（クラス）</h3>
-        <ul>
-          <li><code>NKLandscape(N, K, seed)</code></li>
-          <li>属性：
-            <ul>
-              <li><code>dependencies[i] → List[int]</code></li>
-              <li><code>tables[i] → 長さ 2**(K+1) の配列</code></li>
-            </ul>
-          </li>
-          <li>メソッド：
-            <ul>
-              <li><code>generate_landscape()</code></li>
-              <li><code>evaluate(state) → V(state)</code></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
+    <h2>疑問ポイントの整理</h2>
+    <div class="qabox">
+      <strong>質問1</strong> プレイヤー（agent）は何を表現していて、NKのビットとどう対応しているのか？
     </div>
+    <div class="qabox">
+      <strong>質問2</strong> ダイナミクス中で参照するスコア V(d) は、各ステップでどう「生成」されているのか？
+    </div>
+    <div class="qabox">
+      <strong>質問3</strong> 特性関数 v(S) は、実際にはどのような実験プロトコルで数値化しているのか？
+    </div>
+    <div class="qabox">
+      <strong>質問4</strong> 仕様として書いたものと、現行 lazer2007 実装の差分はどこか？どこまで揃っていて、どこからが拡張か？
+    </div>
+  </section>
+
+  <!-- 3. プレイヤーの意味とビットとの対応 -->
+  <section class="slide">
+    <h2>プレイヤーとは何か？（agent ↔ bit の対応）</h2>
+    <div class="qabox">
+      <strong>質問1</strong> この論文におけるプレイヤーと NK モデル上のビットはどう対応しているか？
+    </div>
+    <h3>モデリング方針（現行実装に合わせた定義）</h3>
+    <ul>
+      <li><span class="highlight">プレイヤー = Lazer2007 の「エージェント」</span> とみなす。</li>
+      <li>各プレイヤー a は、自分専用の戦略ベクトル d<sup>(a)</sup> ∈ {0,1}<sup>N</sup> を持つ。</li>
+      <li>現在の lazer2007 実装では、<strong>関心のあるプレイヤー集合 N（ゲームのプレイヤー）は「エージェント集合」と一致</strong>させている。</li>
+      <li>NK の各ビットは「戦略の構成要素」であり、現状は
+        <span class="highlight">1エージェント = 1ビット</span>
+        という単純な割当（a番目のプレイヤーがビット a と紐づく）で運用している。
+      </li>
+    </ul>
     <p class="small">
-      標準モードでは全テーブルを U[0,1] から生成。拡張でバイアス・相性を埋め込む。
+      後続の拡張として「1プレイヤーが複数ビットを担当」「部署単位のプレイヤー」も可能だが、lazer2007 ベースラインは均質な 1:1 対応で固定。
     </p>
   </section>
 
-  <!-- 5. スキル・相性のバイアスフック -->
+  <!-- 4. V(d) とは何か？どこで“生成”されるか -->
   <section class="slide">
-    <h2>Layer A 拡張：技量差・相性の埋め込み</h2>
-    <h3>技量（スキル）バイアス</h3>
+    <h2>スコア V(d)：定義と生成タイミング</h2>
+    <div class="qabox">
+      <strong>質問2</strong> 毎ステップで使うスコア V(d) は、その場でランダム生成しているのか？
+    </div>
+    <h3>答え：V(d) は「初期化時に固定したランドスケープを lookup」しているだけ</h3>
     <ul>
-      <li>各ビット i に対して skill を割り当て：
-        <ul>
-          <li>Senior：c<sub>i</sub> ~ U[0.5, 1.0]</li>
-          <li>Junior：c<sub>i</sub> ~ U[0.0, 0.8]</li>
-        </ul>
+      <li>V(d) は NK モデル標準の定義：
+        <br/>
+        <span class="highlight">
+          V(d) = (1/N) Σ<sub>i=1..N</sub> f_i(d_i, d_{i_1}, …, d_{i_K})
+        </span>
       </li>
-      <li><code>skill_profile[i] = ("Senior" or "Junior")</code></li>
-      <li>テーブル生成時に skill に応じた一様分布からサンプリング</li>
-    </ul>
-    <h3>相性（コンフリクト）の埋め込み</h3>
-    <ul>
-      <li><code>conflict_pairs = [(i, j), …]</code> を指定</li>
-      <li>該当ペアを含む入力パターンに対して、
-        「背反的」なスコアパターンを意図的に設定
+      <li>f_i は
+        <strong>シミュレーション開始前の初期化フェーズで、全パターン分を乱数で生成しテーブル化</strong>
+        している。
       </li>
-      <li>例：A が 1, B が 0 のときだけ A 高得点／A=1,B=1 では A 低得点 など</li>
+      <li>ダイナミクス中では、<strong>「戦略 d から依存ビットを切り出し、対応するテーブル値を参照するだけ」</strong>であり、新しい乱数は発生しない。</li>
     </ul>
+    <p class="small">
+      つまり、V(d) は「静的に決まった rugged landscape 上の高さ」であり、
+      ラウンド t ごとに再サンプリングされる“動的な報酬”ではない。
+    </p>
   </section>
 
-  <!-- 6. Layer B：エージェントとタスク割当 -->
+  <!-- 5. ランドスケープ初期化アルゴリズム（何をいつ生成するか） -->
   <section class="slide">
-    <h2>Layer B：エージェント &amp; タスク割当</h2>
-    <h3>基本設計</h3>
-    <ul>
-      <li>エージェント集合：A = {1, …, n<sub>agents</sub>}</li>
-      <li>担当ビット：
-        <span class="highlight">T(a) ⊆ {1,…,N}</span>
-      </li>
-      <li>スキル：
-        <span class="highlight">skill(a) ∈ {Senior, Junior, …}</span>
-      </li>
-    </ul>
-    <h3>デフォルト設定（初期版）</h3>
-    <ul>
-      <li>1エージェント = 1ビット
-        <ul>
-          <li>N = n<sub>agents</sub>, T(a) = {a}</li>
-        </ul>
-      </li>
-      <li>後続拡張：
-        <ul>
-          <li>ハブプレイヤー：T(a) が複数ビットを担当</li>
-          <li>部署レベルのプレイヤー：複数ビットを1プレイヤーに集約</li>
-        </ul>
-      </li>
-    </ul>
-  </section>
-
-  <!-- 7. Layer C：ネットワーク構造 -->
-  <section class="slide">
-    <h2>Layer C：ネットワーク構造</h2>
-    <h3>対象とするネットワークタイプ</h3>
-    <ul>
-      <li>LINE（線形チェーン）
-        <ul>
-          <li>両端以外は2つの隣人のみ</li>
-        </ul>
-      </li>
-      <li>COMPLETE（完全グラフ）
-        <ul>
-          <li>全員が全員と接続</li>
-        </ul>
-      </li>
-      <li>RANDOM(p)
-        <ul>
-          <li>各ペアを確率 p で接続（Erdős–Rényi型）</li>
-        </ul>
-      </li>
-      <li>SMALL_WORLD(k, β)
-        <ul>
-          <li>リング格子 + 再配線によるショートカット</li>
-        </ul>
-      </li>
-    </ul>
-    <h3>実装</h3>
-    <ul>
-      <li><code>NetworkFactory.create(type, params) → Graph</code></li>
-      <li>ノード：エージェントID、エッジ：情報伝達リンク</li>
-    </ul>
-  </section>
-
-  <!-- 8. Layer D：探索・活用ダイナミクス -->
-  <section class="slide">
-    <h2>Layer D：探索・活用ダイナミクス</h2>
-    <h3>状態と更新ルール</h3>
-    <ul>
-      <li>各エージェント a は「自分の信じる戦略」 d<sup>a</sup> ∈ {0,1}<sup>N</sup> を保持</li>
-      <li>各ラウンドで以下を並行実行：</li>
-    </ul>
+    <h2>ランドスケープ初期化：V(d) を支えるテーブル生成</h2>
+    <h3>初期化フェーズで行っていること（現行実装に対応）</h3>
     <ol>
-      <li>観察：
+      <li>N, K, 乱数シードを固定する。</li>
+      <li>各ビット i = 1…N について、自分以外から K 個の依存先 Dep(i) をランダムに選ぶ。</li>
+      <li>各 i について、「自分＋依存先 K 個」の K+1 ビットの全組合せ（2^(K+1) 通り）に対して、
         <ul>
-          <li>隣人 b ∈ N(a) のスコア V(d<sup>b</sup>) を評価</li>
-          <li>自分より高い隣人がいれば最良の1人 b* を選択</li>
+          <li>均質なベースラインでは、一様乱数 U[0,1] からサンプルして f_i テーブルに格納。</li>
+          <li>この時点で「地形」は完全に決まり、その後は一切変わらない。</li>
         </ul>
       </li>
-      <li>模倣 or 探索：
-        <ul>
-          <li>高スコア隣人あり → d<sup>a</sup> を d<sup>b*</sup> にコピー
-            （コピー誤差 e を許容）
-          </li>
-          <li>高スコア隣人なし → 自分の担当ビット T(a) の1ビットを反転して近傍探索</li>
-        </ul>
-      </li>
+      <li>評価関数 evaluate(d) は、「全 i について key = (d_i, d_{Dep(i)}) を作り、f_i[key] を合計して N で割る」ルーチンとして実装される。</li>
     </ol>
-    <h3>velocity / error</h3>
-    <ul>
-      <li>velocity v：各ラウンドで「隣人を見る」確率（低いほど情報伝播が遅くなる）</li>
-      <li>error e：コピー時のビット誤差率（高いほど多様性が維持される）</li>
-    </ul>
+    <p class="small">
+      スキル差・相性ペアは、このテーブル生成時にバイアスとして注入できる拡張ポイントだが、
+      lazer2007 baseline では未使用（後述）。
+    </p>
   </section>
 
-  <!-- 9. Layer E：ゲーム化と v(S) 定義 -->
+  <!-- 6. ダイナミクス中の V(d) 利用方法 -->
   <section class="slide">
-    <h2>Layer E：協力ゲーム化と v(S) の定義</h2>
-    <h3>プレイヤー定義</h3>
+    <h2>ダイナミクス中では V(d) をどう使っているか？</h2>
+    <div class="qabox">
+      <strong>質問2'</strong> 「マイステップで取得するスコア」は何をしているのか？毎回生成？それとも評価？
+    </div>
+    <h3>現実装の方針（Lazer2007 ベースライン）</h3>
     <ul>
-      <li>基本案：
-        <span class="highlight">プレイヤー = エージェント = ビット</span>
+      <li>ラウンド t で、各エージェント a は自分の戦略 d<sup>(a)</sup> を持っている。</li>
+      <li>隣人 b の戦略 d<sup>(b)</sup> に対して、
+        <code>V(d<sup>(b)</sup>) = evaluate(d<sup>(b)</sup>)</code> を計算する。
       </li>
-      <li>プレイヤー集合 N = {1,…,n<sub>agents</sub>}</li>
-    </ul>
-    <h3>v(S) の定義（サブネットワーク方式）</h3>
-    <ol>
-      <li>S ⊆ N を与える</li>
-      <li>G の誘導部分グラフ G[S] を構成（S だけが存在する組織）</li>
-      <li>NKランドスケープは共通（同じ環境）</li>
-      <li>T ラウンドシミュレーションを R 回実行</li>
-      <li>性能指標の例：
+      <li>ここで呼んでいる <code>evaluate</code> は「前節のテーブル lookup 関数」であり、新しい乱数は一切出ない。</li>
+      <li>比較対象：
         <ul>
-          <li>最終ラウンド平均スコア：
-            v(S) = (1/|S|) Σ<sub>a∈S</sub> V(d<sup>a</sup><sub>T</sub>)
-          </li>
-          <li>期間内ベストスコア：
-            v(S) = max<sub>t≤T</sub> max<sub>a∈S</sub> V(d<sup>a</sup><sub>t</sub>)
+          <li>自分のスコア <code>my_score = V(d<sup>(a)</sup>)</code></li>
+          <li>隣人のスコア群 <code>neighbor_scores[b] = V(d<sup>(b)</sup>)</code></li>
+        </ul>
+      </li>
+      <li>その比較結果に基づいて「模倣するか／自分で探索するか」を決めているだけで、スコア自体は static な地形上の値。</li>
+    </ul>
+    <p class="small">
+      すなわち、「ダイナミクスでマイステップ取得しているスコア」は「地形上の座標 d の高さを読む操作」であり、
+      地形の再生成ではない。
+    </p>
+  </section>
+
+  <!-- 7. v(S) の定義（プロトコル） -->
+  <section class="slide">
+    <h2>v(S) の定義：どのように数値化しているか</h2>
+    <div class="qabox">
+      <strong>質問3</strong> 協力ゲームの特性関数 v(S) は、シミュレーションレベルでどう作っているのか？
+    </div>
+    <h3>現行パイプラインのプロトコル</h3>
+    <ol>
+      <li>プレイヤー集合 N から提携 S ⊆ N を一つ選ぶ。</li>
+      <li>元ネットワーク G から S の誘導部分グラフ G[S] を作り、「S だけの組織」を構成する。</li>
+      <li>R 回の run を行う。各 run では：
+        <ul>
+          <li>各 a ∈ S にランダムな初期戦略 d<sup>(a)</sup> を割り当てる。</li>
+          <li>Lazer2007 ダイナミクス（velocity, error を含む）を T ラウンド回す。</li>
+          <li>T ラウンド目終了時点での「S の平均性能」
+            <br/>
+            <code>v_run(S) = (1/|S|) Σ<sub>a∈S</sub> V(d<sup>(a)</sup><sub>T</sub>)</code>
+            を記録する。
           </li>
         </ul>
       </li>
-    </ol>
-    <p class="small">
-      v(S) はシミュレーション実験の統計量として定義し、そのテーブルが貢献度分析の入力となる。
-    </p>
-  </section>
-
-  <!-- 10. ゲームテーブル生成フロー -->
-  <section class="slide">
-    <h2>ゲームテーブル生成フロー</h2>
-    <ol>
-      <li>環境・ネットワーク・エージェント構成を固定
-        <ul>
-          <li>NKランドスケープ（seed）</li>
-          <li>ネットワーク種別（LINE / COMPLETE 等）</li>
-          <li>skill・相性パラメータ</li>
-        </ul>
-      </li>
-      <li>全提携 S ⊆ N を列挙（2<sup>n</sup>。n は現実的な範囲に制限）</li>
-      <li>各 S について：
-        <ul>
-          <li>G[S] を構成し、シミュレーションを R 回実行</li>
-          <li>定義した指標から v(S) を推定</li>
-        </ul>
-      </li>
-      <li>結果をテーブルに格納
-        <ul>
-          <li>列例：coalition_id, members, size, v_mean, v_std, params…</li>
-        </ul>
+      <li>最終的な v(S) は R 回分の平均：
+        <br/>
+        <span class="highlight">
+          v(S) = (1/R) Σ<sub>r=1..R</sub> v_run<sup>(r)</sup>(S)
+        </span>
       </li>
     </ol>
     <p class="small">
-      このテーブルを Shapley値や他の貢献度指標への入力として利用する。
+      この v(S) をゲームテーブルの v_mean として記録し、run 間の分散から v_std も併記している。
     </p>
   </section>
 
-  <!-- 11. Lazer-Friedman再現モードと拡張 -->
+  <!-- 8. 現行実装と完全一致している部分 -->
   <section class="slide">
-    <h2>LF再現モードと研究用拡張</h2>
-    <h3>LFベースライン設定</h3>
+    <h2>仕様と現行実装が完全一致している部分</h2>
+    <h3>完全一致（あるいはほぼ一致）として扱える箇所</h3>
     <ul>
-      <li>N = 20, K = 5（代表ケース）</li>
-      <li>n<sub>agents</sub> = N, 1人1ビット</li>
-      <li>skill バイアスなし、conflict_pairs なし</li>
-      <li>ネットワーク：LINE / COMPLETE / RANDOM / SMALL_WORLD</li>
-      <li>velocity, error を論文の条件に合わせて設定</li>
-    </ul>
-    <h3>貢献度分析用拡張</h3>
-    <ul>
-      <li>ケース1：均質エージェント（ネットワーク純効果を見る）</li>
-      <li>ケース2：Senior / Junior 混合（技量差の影響）</li>
-      <li>ケース3：ハブ＋相性悪化（負の相互作用・足の引っ張り合い）</li>
-    </ul>
-  </section>
-
-  <!-- 12. 実装タスク分割 -->
-  <section class="slide">
-    <h2>実装タスク分割（モジュール構成）</h2>
-    <ul>
-      <li>1. NKランドスケープモジュール
+      <li>NK ランドスケープの構造：
         <ul>
-          <li><code>NKLandscape</code>：標準機能＋skill/conflict フック</li>
+          <li>N, K, ランダム依存 Dep(i)、f_i テーブル、V(d) = 平均スコア</li>
         </ul>
       </li>
-      <li>2. エージェント &amp; ネットワークモジュール
+      <li>ネットワーク生成：
         <ul>
-          <li><code>Agent</code>：担当ビット・skill 等</li>
-          <li><code>NetworkFactory</code>：line / complete / random / small-world</li>
+          <li>line / complete / random / small-world 等のトポロジ</li>
         </ul>
       </li>
-      <li>3. シミュレーションエンジン
+      <li>Lazer-Friedman 型ダイナミクス：
         <ul>
-          <li><code>Simulation</code>：velocity, error, T をパラメータに run()</li>
+          <li>velocity / error_rate、隣人観察 → 模倣 or 探索の流れ</li>
         </ul>
       </li>
-      <li>4. ゲームテーブル生成モジュール
+      <li>サブネットワーク方式による v(S) の計算：
         <ul>
-          <li><code>GameTableBuilder</code>：全 S 列挙 → v(S) 推定 → CSV 出力</li>
+          <li>G[S] を作り、その上でダイナミクスを回して性能を測る。</li>
+        </ul>
+      </li>
+      <li>v(S) の定義：
+        <ul>
+          <li>R 回の run の「最終平均性能」の平均として v_mean を定義</li>
+          <li>標準偏差を v_std として保存</li>
         </ul>
       </li>
     </ul>
     <p class="small">
-      この分割により、Lazer-Friedman再現実験と貢献度ゲーム分析を同一基盤上で回せる。
+      したがって、「ネットワーク × 探索／活用の挙動」と「v(S) 推定アルゴリズム」のコア部分は、
+      仕様と実装が既に揃っている。
     </p>
+  </section>
+
+  <!-- 9. 現行実装で簡略化されている点（要拡張） -->
+  <section class="slide">
+    <h2>現行は簡略化している点（要拡張ポイント）</h2>
+    <h3>1. スキル／相性ペア</h3>
+    <ul>
+      <li>NKLandscape 側にスキル差・相性ペアを注入するフックはあるが、lazer2007 baseline では使用していない。</li>
+      <li>現状は「均質エージェント＋対称ランドスケープ（全 f_i ~ U[0,1]）」として運用。</li>
+      <li>スキル差・相性を研究テーマとして使うフェーズで有効化する予定の拡張機能。</li>
+    </ul>
+    <h3>2. 探索ステップの採用条件</h3>
+    <ul>
+      <li>現実装では
+        <span class="highlight">新スコア ≥ 旧スコア</span>
+        のときに探索候補を採用している（plateau も登る）。
+      </li>
+      <li>仕様としては「strict hill-climbing」(新スコア > 旧スコア) を前提に書いていたが、
+        実装はやや緩い条件になっている。
+      </li>
+      <li>この差分については、今後「strict / loose」を切り替え可能にする拡張候補として扱う。</li>
+    </ul>
+    <h3>3. ゲームテーブルのメタデータ</h3>
+    <ul>
+      <li>現状のテーブルには v_mean, v_std, runs などはあるが、
+        N, K, T, R, seed 等のメタ情報は lazer2007 では notes カラムにも未記載。
+      </li>
+      <li>Ethiraj / Levinthal 側と同様に、notes or 専用カラムでメタデータを埋めるのは拡張タスク。</li>
+    </ul>
+  </section>
+
+  <!-- 10. 方針のまとめ：疑問へのダイレクト回答 -->
+  <section class="slide">
+    <h2>方針のまとめ：疑問へのダイレクト回答</h2>
+    <div class="qabox">
+      <strong>質問1</strong> プレイヤーは何を意味するか？  
+      <br/>
+      <strong>答え：</strong> Lazer2007 のエージェント = 協力ゲームのプレイヤーとみなす。現行は 1エージェント=1ビットで運用し、各プレイヤーは全体戦略 d を持ち、その性能 V(d) で比較される。
+    </div>
+    <div class="qabox">
+      <strong>質問2</strong> 毎ステップのスコア V(d) はどう生成されるか？  
+      <br/>
+      <strong>答え：</strong> シミュレーション開始前に f_i テーブルを全パターン分ランダム生成し固定。ダイナミクス中は d を入力に「lookup するだけ」で、新しい乱数は出ていない。
+    </div>
+    <div class="qabox">
+      <strong>質問3</strong> v(S) はどう定義しているか？  
+      <br/>
+      <strong>答え：</strong> S のみからなるサブネットワーク G[S] 上で R 回 run を回し、各 run の「最終ラウンドにおける平均性能」の平均値を v(S) としてゲームテーブルに出力している。
+    </div>
+    <div class="qabox">
+      <strong>質問4</strong> 仕様と実装のズレはどこか？  
+      <br/>
+      <strong>答え：</strong> コア部分（NK構造・ネットワーク・LFダイナミクス・v(S) 定義）は一致。スキル・相性・探索条件(>=)・メタデータ出力は「現状は簡略化／未使用で、将来の拡張ポイント」として整理する。
+    </div>
   </section>
 
 </body>

@@ -10,6 +10,7 @@ simulation:
   velocity: 1.0
   error_rate: 0.0
   local_search_scope: assigned
+  accept_equal: false
 game_table:
   runs: 3
   protocol: average_final_score

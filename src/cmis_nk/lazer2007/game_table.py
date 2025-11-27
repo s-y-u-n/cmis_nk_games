@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from itertools import combinations
-from typing import Dict, Iterable, List, Optional, Protocol, Sequence, Tuple
+from typing import Iterable, List, Optional, Protocol, Sequence, Tuple
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from .agents import Agent
-from .simulation import SimulationConfig, SimulationEngine, SimulationResult
+from ..agents import Agent
+from ..common.game_types import GameTableRecord
+from ..simulation import SimulationConfig, SimulationEngine, SimulationResult
 
 
 class GameValueProtocol(Protocol):
@@ -23,19 +24,8 @@ class AverageFinalScoreProtocol(GameValueProtocol):
         return float(np.mean(scores)) if scores else 0.0
 
 
-@dataclass
-class GameTableRecord:
-    coalition_id: int
-    members: Tuple[str, ...]
-    size: int
-    mean_value: float
-    std_value: float
-    runs: int
-    notes: str = ""
-
-
 class GameTableBuilder:
-    """Generate cooperative game tables from coalition simulations."""
+    """Generate cooperative game tables from coalition simulations (Lazer2007-style)."""
 
     def __init__(
         self,
@@ -46,6 +36,7 @@ class GameTableBuilder:
         runs: int = 5,
         protocol: Optional[GameValueProtocol] = None,
         rng_seed: Optional[int] = None,
+        notes: Optional[str] = None,
     ) -> None:
         self.landscape = landscape
         self.agents = agents
@@ -54,6 +45,7 @@ class GameTableBuilder:
         self.runs = runs
         self.protocol = protocol or AverageFinalScoreProtocol()
         self.rng = np.random.default_rng(rng_seed)
+        self.base_notes = notes or ""
         self.records: List[GameTableRecord] = []
 
     def build_table(self, max_size: Optional[int] = None) -> pd.DataFrame:
@@ -63,6 +55,7 @@ class GameTableBuilder:
             coalition_agents = [self.agents[i] for i in coalition_ids]
             member_labels = tuple(agent.player_id for agent in coalition_agents)
             if not coalition_agents:
+                notes = (self.base_notes + ";empty coalition") if self.base_notes else "empty coalition"
                 self.records.append(
                     GameTableRecord(
                         coalition_id=coalition_index,
@@ -71,14 +64,14 @@ class GameTableBuilder:
                         mean_value=0.0,
                         std_value=0.0,
                         runs=0,
-                        notes="empty coalition",
+                        notes=notes,
                     )
                 )
                 coalition_index += 1
                 continue
             values: List[float] = []
             subgraph = self.base_graph.subgraph([agent.agent_id for agent in coalition_agents]).copy()
-            for run_idx in range(self.runs):
+            for _ in range(self.runs):
                 cfg = replace(self.sim_config, rng_seed=int(self.rng.integers(0, 1_000_000_000)))
                 engine = SimulationEngine(
                     landscape=self.landscape,
@@ -90,6 +83,7 @@ class GameTableBuilder:
                 values.append(self.protocol.evaluate(result, coalition_agents))
             mean_value = float(np.mean(values))
             std_value = float(np.std(values))
+            notes = self.base_notes
             self.records.append(
                 GameTableRecord(
                     coalition_id=coalition_index,
@@ -98,6 +92,7 @@ class GameTableBuilder:
                     mean_value=mean_value,
                     std_value=std_value,
                     runs=self.runs,
+                    notes=notes,
                 )
             )
             coalition_index += 1

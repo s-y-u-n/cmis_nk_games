@@ -61,6 +61,7 @@ class SimulationConfig:
     error_rate: float
     mode: Literal['generic','lf_pure']
     local_search_bits: Literal['assigned','all']
+    accept_equal: bool
 ```
 - `SimulationEngine`:
   - `states`: dict[agent_id, AgentState]
@@ -70,7 +71,7 @@ class SimulationConfig:
        - 観察判定（velocity）。
        - 観察する場合：隣人のスコアを `landscape.evaluate(neighbor_state)` で比較。
        - 最良隣人が自分より良ければ模倣。コピー時に `error_rate` を適用。
-       - それ以外は探索：担当ビット集合から 1 つ選び、反転して改善すれば採用。
+       - それ以外は探索：担当ビット集合から 1 つ選び、反転して改善すれば採用（accept_equal=False の場合は strictly better のみ）。
     2. ラウンド終了時に `history` に平均/最大スコアを記録。
   - 返却: `SimulationResult`
 ```text

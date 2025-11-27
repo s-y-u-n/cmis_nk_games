@@ -84,7 +84,7 @@ class EthirajGameTableBuilder:
             F_dS = landscape.evaluate(state)
             v_value = F_dS - baseline_fitness
 ```
-- `GameTableRecord` reused with `mean_value = v_value`, `std_value=0`, `notes` storing scenario+module basis。
+- `GameTableRecord` (from `cmis_nk.common.game_types`) reused with `mean_value = v_value`, `std_value=0`, `notes` storing scenario+module basis。
 
 ## 6. Pipeline Integration
 - Add `_run_ethiraj_experiment(exp)` in `pipeline.py` analogous to other scenario branches.
