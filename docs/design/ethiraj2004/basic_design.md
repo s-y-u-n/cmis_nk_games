@@ -46,7 +46,18 @@
   - 引数: `landscape`, `players_modules` (List[List[int]]), `baseline_state`, `mature_state`.
   - `build_table()` returns DataFrame with `v_value`, `absolute_fitness`, `notes`.
 
-## 4. Config 項目
+## 4. 可視化方針
+
+- ゲームテーブル CSV を用いて、「どのモジュール集合 S がどれだけシステム性能を押し上げるか」をサイズ別に可視化する。
+  - タイトル例:「Ethiraj2004: モジュール集合 S の貢献度 v(S)」。
+  - x 軸ラベル:「提携サイズ |S|（改善されたモジュール数）」。
+  - y 軸ラベル:「v(S) = F(d^S) − F(d⁰)」。
+- CLI から `nk-games plot-table --scenario ethiraj2004 --input <csv>` を実行し、
+  `outputs/tables/ethiraj2004/` に PNG を保存することで、「どのモジュール構成が全体性能に効いているか」を視覚的に把握する。
+- さらに `nk-games plot-modules --config ... --basis {true,designer,both}` により、真モジュール or デザイナーモジュールの
+  依存ネットワークを図示し、モジュール誤認の程度を視覚化する（出力: `outputs/figures/ethiraj2004/module_network_*.png`）。
+
+## 5. Config 項目
 ```yaml
 scenario:
   type: ethiraj2004

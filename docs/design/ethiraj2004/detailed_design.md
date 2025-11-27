@@ -101,3 +101,10 @@ class EthirajGameTableBuilder:
 - Path: `outputs/tables/ethiraj2004_baseline.csv`.
 - Notes include scenario name, M/K, recombination_mode, and seeds.
 - Optionally store time-series metrics to `outputs/logs/ethiraj2004_baseline_history.csv`.
+
+## 8. 実世界での読み替え
+
+- `true_modules` は、現実の技術システムや組織プロセスの「実際の結合構造」に対応し、`designer_modules` は設計者が頭の中で想定している分割単位を表す。
+- ダイナミクスで生成される d⁰ / d* は、それぞれ「ベースライン設計」と「設計者のモジュール認識のもとで長期に適応した設計」として解釈できる。
+- ゲームテーブルのプレイヤ（modules）は、現実には「どのモジュール群をちゃんと設計し直せば、全体性能がどれだけ伸びるか」を評価するための単位であり、
+  v(S) = F(d^S) − F(d⁰) は、そのモジュール集合 S に対する設計投資の“期待リターン”として読める。

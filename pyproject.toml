@@ -13,6 +13,8 @@ numpy = "^2.3.5"
 networkx = "^3.2.1"
 pandas = "^2.3.3"
 PyYAML = "^6.0.3"
+matplotlib = "^3.9.0"
+japanize-matplotlib = "^1.1.3"
 
 [tool.poetry.scripts]
 nk-games = "cmis_nk.cli:main"

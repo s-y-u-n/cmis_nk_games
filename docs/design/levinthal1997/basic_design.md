@@ -32,7 +32,16 @@
   - `build_table(max_size=None)` で全提携（またはサイズ制限付き）を列挙し、各提携に対し `LocalSearchEngine` を M 回実行して v(S) を推定。
   - `GameTableRecord` を再利用しつつ、`notes` に scenario 名や (N,K,trials) を記録。
 
-## 4. 設定ファイル方針
+## 4. 可視化方針
+
+- ゲームテーブル CSV から |S| vs v(S) のプロットを生成し、「自由ビット数が多いほどどの程度フィットネスが上がるか」を可視化する。
+  - タイトル例:「Levinthal1997: 自由ビット集合 S の適応力 v(S)」。
+  - x 軸ラベル:「提携サイズ |S|（自由に変更可能なビット数）」。
+  - y 軸ラベル:「v(S)（制約付きローカル探索の平均ベストフィットネス）」。
+- CLI から `nk-games plot-table --scenario levinthal1997 --input <csv>` を実行することで、
+  設計権限のサイズと性能の関係をグラフで確認できるようにする。
+
+## 5. 設定ファイル方針
 - `config/levinthal1997_baseline.yml`
   - `scenario.type = levinthal1997`
   - `landscape`: N, K, seeds。
@@ -40,6 +49,6 @@
   - `game_table`: {runs: M}（Levinthal シナリオでは M = runs と解釈）。
 - 既存 Lazer config も `scenario.type = lazer2007` を追加して互換性を確保。
 
-## 5. CLI 拡張
+## 6. CLI 拡張
 - `nk-games run --scenario levinthal1997 ...` も検討したが、YAML 側で scenario を切り替える方式を採用。
 - CLI は共通で、内部で `ExperimentConfig.scenario_type` を評価して適切なルートを実行。

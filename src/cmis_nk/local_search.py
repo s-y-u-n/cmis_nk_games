@@ -49,6 +49,56 @@ class LocalSearchEngine:
     def run_trials(self, trials: int) -> list[LocalSearchResult]:
         return [self._run_once() for _ in range(trials)]
 
+    def run_with_history(self) -> tuple[LocalSearchResult, list[float]]:
+        """1 回のローカル探索を実行し、ベストフィットネスの推移も返す。"""
+
+        if not self.free_bits:
+            fitness = float(self.landscape.evaluate(self.baseline_state))
+            result = LocalSearchResult(
+                final_state=self.baseline_state.copy(),
+                final_fitness=fitness,
+                best_fitness=fitness,
+                steps=0,
+            )
+            return result, [fitness]
+        current_state = self._initial_state()
+        current_fitness = float(self.landscape.evaluate(current_state))
+        best_state = current_state.copy()
+        best_fitness = current_fitness
+        history: list[float] = [best_fitness]
+        stall_counter = 0
+        steps = 0
+        while steps < self.config.max_steps and stall_counter < self.config.stall_limit:
+            steps += 1
+            bit = int(self.rng.choice(self.free_bits))
+            candidate_state = current_state.copy()
+            candidate_state[bit] = 1 - candidate_state[bit]
+            candidate_fitness = float(self.landscape.evaluate(candidate_state))
+            improved = candidate_fitness > best_fitness
+            accept = improved
+            if not accept and self.config.noise_accept_prob > 0.0:
+                if self.rng.random() < self.config.noise_accept_prob:
+                    accept = True
+            if accept:
+                current_state = candidate_state
+                current_fitness = candidate_fitness
+                if improved:
+                    best_fitness = candidate_fitness
+                    best_state = candidate_state.copy()
+                    stall_counter = 0
+                else:
+                    stall_counter += 1
+            else:
+                stall_counter += 1
+            history.append(best_fitness)
+        result = LocalSearchResult(
+            final_state=current_state,
+            final_fitness=best_fitness,
+            best_fitness=best_fitness,
+            steps=steps,
+        )
+        return result, history
+
     def _run_once(self) -> LocalSearchResult:
         if not self.free_bits:
             fitness = float(self.landscape.evaluate(self.baseline_state))

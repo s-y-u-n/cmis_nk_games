@@ -73,6 +73,52 @@ poetry run nk-games run --config config/ethiraj2004_baseline.yml
     その期待値から F(d⁰) を引いた差 v(S) = E_r[F(d^S^(r))] − F(d⁰) として定義。
 - 出力先: `outputs/tables/ethiraj2004/ethiraj2004_XXX.csv`
 
+## コマンド例まとめ
+
+頻繁に使う基本コマンドをまとめておきます。
+
+```bash
+# 依存関係のインストール（初回のみ）
+poetry install
+
+# 各シナリオのゲームテーブル生成
+poetry run nk-games run --config config/lazer2007_baseline.yml
+poetry run nk-games run --config config/levinthal1997_baseline.yml
+poetry run nk-games run --config config/ethiraj2004_baseline.yml
+
+# 生成済みテーブルからのゲームテーブル可視化
+poetry run nk-games plot-table --scenario lazer2007     --input outputs/tables/lazer2007/lazer2007_001.csv
+poetry run nk-games plot-table --scenario levinthal1997 --input outputs/tables/levinthal1997/levinthal1997_001.csv
+poetry run nk-games plot-table --scenario ethiraj2004   --input outputs/tables/ethiraj2004/ethiraj2004_001.csv
+```
+
+上記の `plot-table` は、ゲームテーブル CSV から「提携サイズ |S| vs v(S)」の誤差バー付きプロットを生成し、
+`outputs/figures/<scenario>/..._by_size.png` に保存します。
+
+シミュレーション実行時には、動学の様子が分かる代表的なプロットも自動で生成されます（PNG のみ出力）。
+
+```bash
+# Lazer2007: ネットワーク上での探索/活用ダイナミクス（平均・最大スコアの推移）
+poetry run nk-games run --config config/lazer2007_baseline.yml
+# ⇒ outputs/figures/lazer2007/lazer2007_dynamics.png
+
+# Levinthal1997: 制約付きローカル探索でのベストフィットネス推移（山登りの軌跡）
+poetry run nk-games run --config config/levinthal1997_baseline.yml
+# ⇒ outputs/figures/levinthal1997/levinthal1997_local_search.png
+
+# Ethiraj2004: マルチ企業ダイナミクス（平均・最大フィットネスの時間推移）
+poetry run nk-games run --config config/ethiraj2004_baseline.yml
+# ⇒ outputs/figures/ethiraj2004/ethiraj2004_dynamics.png
+
+# NKランドスケープ断面ヒートマップ（例: ビット0-1 vs 2-3）
+poetry run nk-games plot-landscape --config config/lazer2007_baseline.yml --x-bits 0 1 --y-bits 2 3
+# ⇒ outputs/figures/<scenario>/landscape_heatmap_<scenario>.png
+
+# Ethiraj2004: モジュール間依存ネットワーク（真/デザイナー両方）
+poetry run nk-games plot-modules --config config/ethiraj2004_baseline.yml --basis both
+# ⇒ outputs/figures/ethiraj2004/module_network_true.png など
+```
+
 ## 実世界での解釈（プレイヤーと v(S)）
 
 数式上はどのシナリオも「プレイヤ集合 N」と「特性関数 v:2^N→ℝ」を扱いますが、

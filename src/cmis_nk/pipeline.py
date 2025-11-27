@@ -12,9 +12,9 @@ from .lazer2007.game_table import (
 )
 from .landscape import NKLandscape
 from .levinthal1997 import LevinthalGameTableBuilder, LevinthalPlayer
-from .local_search import LocalSearchConfig
+from .local_search import LocalSearchConfig, LocalSearchEngine
 from .networks import NetworkFactory
-from .simulation import SimulationConfig
+from .simulation import SimulationConfig, SimulationEngine
 from .ethiraj2004 import (
     build_true_modules,
     build_designer_modules,
@@ -25,6 +25,11 @@ from .ethiraj2004 import (
 )
 from .ethiraj2004.game_table import ModuleDefinition
 from .utils import bitstring_to_array, next_numbered_csv_path
+from .visualization import (
+    plot_lazer_dynamics,
+    plot_levinthal_path,
+    plot_ethiraj_dynamics,
+)
 
 
 def protocol_from_name(name: str) -> GameValueProtocol:
@@ -131,6 +136,16 @@ def _run_lazer_experiment(
         base_dir = Path("outputs/tables") / exp.scenario_type
         output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     builder.to_csv(str(output_path))
+
+    # 挙動理解のためのダイナミクス可視化（フルネットワークで 1 回デモ）
+    demo_engine = SimulationEngine(
+        landscape=landscape,
+        agents=agents,
+        graph=graph,
+        config=sim_config,
+    )
+    demo_result = demo_engine.run()
+    plot_lazer_dynamics(demo_result.history, Path("outputs/figures") / exp.scenario_type)
     return output_path, len(df)
 
 
@@ -171,6 +186,18 @@ def _run_levinthal_experiment(
         base_dir = Path("outputs/tables") / exp.scenario_type
         output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     builder.to_csv(str(output_path))
+
+    # 代表的な提携（全ビット自由）で 1 回だけローカル探索の軌跡を可視化
+    demo_engine = LocalSearchEngine(
+        landscape=landscape,
+        baseline_state=baseline_state,
+        free_bits=list(range(exp.N)),
+        config=search_config,
+        rng_seed=exp.random_seed,
+    )
+    _, history = demo_engine.run_with_history()
+    plot_levinthal_path(history, Path("outputs/figures") / exp.scenario_type)
+
     return output_path, len(df)
 
 
@@ -196,6 +223,7 @@ def _run_ethiraj_experiment(
     # R ラン分のダイナミクスを独立に回し、それぞれの成熟設計候補 d* を集める
     run_count = exp.runs if exp.runs > 0 else 1
     mature_states: List[np.ndarray] = []
+    demo_history: Optional[List[dict[str, float]]] = None
     for run_idx in range(run_count):
         population = EthirajFirmPopulation(
             landscape=landscape,
@@ -211,6 +239,8 @@ def _run_ethiraj_experiment(
             recombination_mode=exp.ethiraj.recombination_mode,
         )
         mature_states.append(sim_result.best_state)
+        if demo_history is None:
+            demo_history = sim_result.history
     players_modules = (
         true_modules if exp.ethiraj.players_basis == "true" else designer_modules
     )
@@ -238,6 +268,11 @@ def _run_ethiraj_experiment(
         base_dir = Path("outputs/tables") / exp.scenario_type
         output_path = next_numbered_csv_path(base_dir, exp.scenario_type)
     df.to_csv(output_path, index=False)
+
+    # 代表 run の集団ダイナミクスを可視化
+    if demo_history is not None:
+        plot_ethiraj_dynamics(demo_history, Path("outputs/figures") / exp.scenario_type)
+
     return output_path, len(df)
 
 def _build_players(exp: ExperimentConfig) -> List[LevinthalPlayer]:

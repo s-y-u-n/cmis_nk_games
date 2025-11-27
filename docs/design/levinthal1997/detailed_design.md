@@ -60,7 +60,13 @@ class LocalSearchConfig:
   - プレイヤ集合はデフォルトで 1:1 ビット対応（設定があれば上書き）。
   - `LevinthalGameTableBuilder` を用いてゲームテーブル CSV を生成。
 
-## 4. テスト戦略
+## 4. 実世界での読み替え
+
+- ローカル探索で扱う各ビットは、現実の組織設計における「方針・ルール・構造選択（Yes/No）」に対応する。
+- プレイヤ集合 N_g は「設計レバーの集まり」であり、提携 S は「そのレバー群に自由に手を入れられるチーム／役割」を意味する。
+- v(S) は、S に与えられた設計権限のもとで、単一組織がどこまで山を登れるか（適応できるか）の期待値として解釈できる。
+
+## 5. テスト戦略
 - `poetry run nk-games run --config config/levinthal1997_baseline.yml`
 - 期待: `outputs/tables/levinthal1997_baseline.csv` が生成され、`size=0..N` のエントリを含む。
 - 手動チェック: baseline state だけの場合（空提携）は baseline フィットネスに一致する。

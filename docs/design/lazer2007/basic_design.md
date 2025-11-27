@@ -39,3 +39,16 @@
 ## 5. 外部 I/F
 - `config/*.yml` にケース設定を保存（N,K,network_type,etc）。
 - CLI/Notebook から `scripts/run_lazer2007.py`（後続タスク）を経由してテーブル生成できる構成を想定。
+
+## 6. 可視化方針
+
+- ゲームテーブル CSV（coalition_id, members, size, mean_value, std_value 等）から、
+  |S| を横軸、v(S) を縦軸とする誤差バー付きプロットを生成する。
+  - タイトル例:「Lazer2007: エージェント集合 S の探索性能 v(S)」。
+  - x 軸ラベル:「提携サイズ |S|（参加エージェント数）」。
+  - y 軸ラベル:「v(S)（最終ラウンド平均フィットネス）」。
+- CLI サブコマンド `nk-games plot-table --scenario lazer2007 --input <csv>` で、
+  `outputs/tables/lazer2007/` 配下に PNG を保存する実装と整合させる。
+- NK ランドスケープの断面ヒートマップを `nk-games plot-landscape --config ... --x-bits ... --y-bits ...` で生成する。
+  - 指定したビット群の組合せ（X 軸 / Y 軸）をスイープし、F(d) の値をヒートマップで可視化する。
+  - 出力先: `outputs/figures/<scenario>/landscape_heatmap_<scenario>.png`。
