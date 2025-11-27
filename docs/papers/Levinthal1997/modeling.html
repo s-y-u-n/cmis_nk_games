@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>NKモデル実装設計方針（Levinthal 1997 再現 ＋ ゲームテーブル生成）</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      color: #222;
+    }
+    .slides {
+      width: 960px;
+      margin: 0 auto;
+      padding: 24px 0 48px;
+    }
+    .slide {
+      background: #fff;
+      padding: 40px 60px;
+      margin: 0 0 32px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      page-break-after: always;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    h1 {
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+    h3 {
+      font-size: 18px;
+      margin-top: 20px;
+      margin-bottom: 4px;
+    }
+    ul {
+      margin-top: 6px;
+    }
+    li {
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+    .note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #666;
+    }
+    .figure-note {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #555;
+      border-left: 3px solid #ddd;
+      padding-left: 10px;
+    }
+    code {
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      background: #f0f0f0;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+<div class="slides">
+
+  <!-- Slide 1: タイトルとゴール -->
+  <section class="slide">
+    <h1>NKモデル実装設計方針</h1>
+    <div class="note">
+      Levinthal (1997) の NK ランドスケープ＋ローカル探索モデルを再現しつつ、<br/>
+      貢献度指標分析用のゲームテーブル <code>v(S)</code> を生成するための設計方針
+    </div>
+    <h3>本実装のゴール</h3>
+    <ul>
+      <li>Levinthal (1997) の NK 適応モデルを数値実験として再現可能にする。</li>
+      <li>同一モデル上で、プレイヤ集合・提携集合を定義し、特性関数 <code>v(S)</code> を推定する。</li>
+      <li>最終的に、貢献度指標（Shapley 値等）の入力となる「ゲームテーブル」を安定生成できる状態にする。</li>
+    </ul>
+    <div class="note">
+      モデルコアは論文再現を優先し、その上にゲーム理論的解釈を「薄く」載せる構造を意図する。
+    </div>
+  </section>
+
+  <!-- Slide 2: 全体アーキテクチャ -->
+  <section class="slide">
+    <h2>全体アーキテクチャ</h2>
+    <h3>コンポーネント構成</h3>
+    <ul>
+      <li><b>1. NK ランドスケープ生成モジュール</b>
+        <ul>
+          <li><code>N, K</code> と相互作用構造、局所貢献テーブルを乱数で生成。</li>
+        </ul>
+      </li>
+      <li><b>2. 適応ダイナミクス（ローカル探索）モジュール</b>
+        <ul>
+          <li>単一組織の山登り（1ビット変更）を実装し、局所最適に到達するプロセスを再現。</li>
+        </ul>
+      </li>
+      <li><b>3. ゲーム定義モジュール</b>
+        <ul>
+          <li>プレイヤ集合と NK ビットの対応関係を定義。</li>
+          <li>各提携 <code>S ⊆ N</code> に対する実験プロトコルを規定し、<code>v(S)</code> を定義。</li>
+        </ul>
+      </li>
+      <li><b>4. 実験ランナー＆ゲームテーブル生成モジュール</b>
+        <ul>
+          <li>パラメータセットごとにシミュレーションを一括実行し、<code>v(S)</code> をテーブルとして出力。</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="figure-note">
+      イメージ：<br/>
+      NK コア（1,2）でランドスケープと適応プロセスを再現 → ゲーム定義（3）で解釈付け → 実験ランナー（4）で <code>v(S)</code> テーブル生成。
+    </div>
+  </section>
+
+  <!-- Slide 3: NKモデル表現 -->
+  <section class="slide">
+    <h2>NKモデル部分の設計</h2>
+    <h3>ランドスケープ表現</h3>
+    <ul>
+      <li><code>N</code>：属性数（例 10〜20）</li>
+      <li><code>K</code>：各属性が依存する他属性数（例 0,1,3,5）</li>
+      <li><code>interaction_structure[i]</code>：
+        属性 i が依存する K 個のインデックスのリスト
+      </li>
+      <li>局所貢献テーブル：
+        <ul>
+          <li>各 i について、<code>(K+1)</code> ビットの組み合わせごとに局所貢献値 <code>f_i ∈ [0,1]</code> を付与。</li>
+        </ul>
+      </li>
+      <li>組織形態：
+        <ul>
+          <li>長さ N の 0/1 ベクトル <code>x</code> で表現。</li>
+          <li>全体フィットネス：<br/>
+            <code>F(x) = (1/N) * Σ_i f_i(x_i, x_neighbors(i))</code>
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <div class="note">
+      この層が Levinthal (1997) の「ラギッドランドスケープ」の定義に対応する。
+    </div>
+  </section>
+
+  <!-- Slide 4: ローカル探索ダイナミクス -->
+  <section class="slide">
+    <h2>ローカル探索（適応プロセス）の設計</h2>
+    <h3>基本アルゴリズム（山登り）</h3>
+    <ul>
+      <li>初期形態 <code>x^0</code> をランダムに生成。</li>
+      <li>各ステップで：
+        <ul>
+          <li>探索対象ビット集合（後述の <code>S</code>）の中から 1 ビットをランダム選択。</li>
+          <li>そのビットを 0↔1 トグルした候補 <code>x'</code> を生成。</li>
+          <li><code>F(x') &gt; F(x)</code> なら採用、そうでなければ棄却。</li>
+        </ul>
+      </li>
+      <li>一定ステップ数改善が見られない／ステップ上限到達で停止。</li>
+    </ul>
+    <h3>拡張オプション</h3>
+    <ul>
+      <li>誤判定や偶然を表現するため、低確率で悪化案も受け入れるノイズ付き探索。</li>
+      <li>環境変化シナリオ：一定サイクルごとに局所貢献テーブルを部分更新。</li>
+    </ul>
+    <div class="note">
+      ゲームテーブル生成では、原則として Levinthal の基本設定に合わせた単純な山登りを標準とし、必要に応じてノイズ／環境変化をシナリオとして切り替える。
+    </div>
+  </section>
+
+  <!-- Slide 5: プレイヤと提携の定義 -->
+  <section class="slide">
+    <h2>プレイヤ定義と提携の意味付け</h2>
+    <h3>プレイヤ集合</h3>
+    <ul>
+      <li>基本案：<b>ビット＝プレイヤ</b>
+        <ul>
+          <li>プレイヤ集合 <code>N_g = {1, ..., N}</code></li>
+          <li>プレイヤ i は NK モデルのビット位置 i に対応。</li>
+        </ul>
+      </li>
+      <li>応用案：ビット群をまとめた「属性グループ」をプレイヤとする（報酬制度グループ等）。</li>
+    </ul>
+    <h3>提携 <code>S ⊆ N_g</code> の解釈（推奨案）</h3>
+    <ul>
+      <li><b>案 A：S が「設計自由度を持つビット集合」</b>
+        <ul>
+          <li><code>N_g \ S</code> のビットはベースライン形態 <code> x̄ </code> に固定。</li>
+          <li>S に属するビットのみローカル探索で変更可能。</li>
+          <li>結果として得られる局所最適の期待フィットネスを <code>v(S)</code> と定義。</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="figure-note">
+      直観：<br/>
+      設計権限を持つビット集合が大きいほど適応余地は広がるが、K が大きいと「部分的権限」の限界も顕在化する。<br/>
+      後段で Shapley 値などを計算することで、「各ビットの設計権限が全体適応力にどれだけ貢献するか」を評価できる。
+    </div>
+  </section>
+
+  <!-- Slide 6: 特性関数 v(S) の推定手順 -->
+  <section class="slide">
+    <h2>特性関数 v(S) の定義と推定</h2>
+    <h3>単一ランドスケープ上での評価</h3>
+    <ul>
+      <li>1. 初期状態サンプリング
+        <ul>
+          <li>試行回数 <code>M</code> 回。</li>
+          <li>各試行でランダム初期状態 <code>x^(m)</code> を生成し、<code>N \ S</code> のビットは <code>x̄</code> に上書き。</li>
+        </ul>
+      </li>
+      <li>2. 制約付きローカル探索
+        <ul>
+          <li>自由に動かせるのは S に属するビットのみ。</li>
+          <li>山登りを実行し、停止時の <code>F(x_final^(m))</code> を記録。</li>
+        </ul>
+      </li>
+      <li>3. 平均化
+        <ul>
+          <li><code>v(S) = (1/M) * Σ_m F(x_final^(m))</code></li>
+        </ul>
+      </li>
+      <li>4. 環境変化シナリオ
+        <ul>
+          <li>必要に応じてランドスケープを複数サンプルし、さらにその上で平均を取る。</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="note">
+      こうして得られる <code>v(S)</code> を協力ゲームの特性関数とみなし、貢献度指標解析に利用する。
+    </div>
+  </section>
+
+  <!-- Slide 7: ゲームテーブルの出力仕様 -->
+  <section class="slide">
+    <h2>ゲームテーブル出力仕様</h2>
+    <h3>想定カラム（例）</h3>
+    <ul>
+      <li><code>coalition_id</code>：提携 ID</li>
+      <li><code>coalition_bits</code>：プレイヤ集合の表現（ビットマスク or {1,3,5} 形式）</li>
+      <li><code>size</code>：|S|</li>
+      <li><code>v_mean</code>：<code>v(S)</code>（M 回試行の平均フィットネス）</li>
+      <li><code>v_std</code>：<code>v(S)</code> の標準偏差</li>
+      <li><code>params_N, params_K</code>：NK パラメータ</li>
+      <li><code>landscape_seed</code>：ランドスケープ生成シード（再現性確保）</li>
+      <li><code>experiment_scenario</code>：静的環境 / 環境変化 / ノイズ有無 などの識別子</li>
+    </ul>
+    <div class="note">
+      貢献度指標計算側では、プレイヤ集合 <code>N_g</code> と特性関数 <code>v: 2^{N_g} → ℝ</code> をこのテーブルから構成する。<br/>
+      出力フォーマットは CSV / Parquet / DB テーブルのいずれかに統一する。
+    </div>
+  </section>
+
+  <!-- Slide 8: 実装モジュール構成（例） -->
+  <section class="slide">
+    <h2>実装モジュール構成（例：Python）</h2>
+    <ul>
+      <li><b><code>nk_landscape.py</code></b>
+        <ul>
+          <li><code>class NKLandscape(N, K, seed)</code></li>
+          <li><code>evaluate(x) -&gt; float</code>：フィットネス評価</li>
+          <li><code>neighbors(i) -&gt; List[int]</code>：相互作用構造取得</li>
+        </ul>
+      </li>
+      <li><b><code>adaptive_walk.py</code></b>
+        <ul>
+          <li><code>class LocalSearchEngine(landscape, free_bits, max_steps, noise_params)</code></li>
+          <li><code>run(initial_x) -&gt; (final_x, fitness)</code></li>
+        </ul>
+      </li>
+      <li><b><code>game_definition.py</code></b>
+        <ul>
+          <li><code>class PlayerMapping</code>：プレイヤ→ビット対応</li>
+          <li><code>class CoalitionEvaluator</code>：<code>evaluate_coalition(S, num_trials) -&gt; v(S)</code></li>
+        </ul>
+      </li>
+      <li><b><code>experiment_runner.py</code></b>
+        <ul>
+          <li><code>class NKGameExperiment(config)</code>：すべての S（またはサブセット）を走査。</li>
+        </ul>
+      </li>
+      <li><b><code>game_table_export.py</code></b>
+        <ul>
+          <li>標準スキーマに従って CSV / Parquet / DB へ出力。</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="note">
+      実際のプロジェクトでは、YAML ベースの設定ファイルと組み合わせて、パラメータセットごとの実験を半自動化する。
+    </div>
+  </section>
+
+  <!-- Slide 9: Levinthal再現との整合性と位置づけ -->
+  <section class="slide">
+    <h2>Levinthal (1997) 再現との整合性</h2>
+    <ul>
+      <li>ランドスケープ生成ロジックとローカル探索アルゴリズムは、論文の設定に準拠。</li>
+      <li>代表的な <code>N,K</code> の組み合わせと探索ルールを実験設定として固定し、図1・図2 等に対応するシナリオも再現可能。</li>
+      <li>ゲームテーブル <code>v(S)</code> は、同一コアモデルの上に「設計権限ゲーム」という解釈を載せて定義。</li>
+      <li>これにより、
+        <ul>
+          <li>災害レジリエンス等で用いてきた「複雑で理論的正当性のあるモデル」という要件を維持しつつ、</li>
+          <li>協力ゲームの枠組みで貢献度指標を定義・比較できる。</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="note">
+      実装後は、<br/>
+      (1) Levinthal 型の適応ダイナミクスの可視化（平均フィットネス、分散、分布）、<br/>
+      (2) ゲームテーブルからの貢献度指標分析（Shapley など）、<br/>
+      を並行して行うことで、修士論文に必要な数値実験基盤を構築できる。
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

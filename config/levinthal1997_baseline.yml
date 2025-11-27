@@ -1,0 +1,29 @@
+N: 10
+K: 3
+scenario:
+  type: levinthal1997
+search:
+  max_steps: 200
+  stall_limit: 40
+  noise_accept_prob: 0.0
+  init_strategy: random
+  perturb_prob: 0.15
+  baseline_state: "0000000000"
+network:  # not used but kept for schema compatibility
+  type: LINE
+  params: {}
+simulation:
+  rounds: 150
+  velocity: 1.0
+  error_rate: 0.0
+  local_search_scope: assigned
+game_table:
+  runs: 20
+  protocol: average_final_score
+  max_coalition_size: null
+seeds:
+  random: 99
+  landscape: 314
+  network: 0
+output:
+  path: outputs/tables/levinthal1997_baseline.csv

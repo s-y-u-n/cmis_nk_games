@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Modularity and Innovation in Complex Systems（Ethiraj &amp; Levinthal 2004）</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #fff;
+    }
+    .slide {
+      box-sizing: border-box;
+      width: 100vw;
+      height: 100vh;
+      padding: 60px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 40px;
+    }
+    h2 {
+      font-size: 32px;
+    }
+    h3 {
+      font-size: 26px;
+    }
+    p {
+      font-size: 20px;
+      line-height: 1.6;
+      margin: 8px 0;
+    }
+    ul {
+      font-size: 20px;
+      line-height: 1.6;
+      margin: 0 0 0 1.2em;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .small {
+      font-size: 16px;
+      opacity: 0.8;
+    }
+    .accent {
+      color: #ffd85e;
+      font-weight: 600;
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 40px;
+    }
+    .box {
+      border-left: 4px solid #ffd85e;
+      padding-left: 16px;
+    }
+  </style>
+</head>
+<body>
+
+
+  <!-- 1. タイトル -->
+
+
+  <section class="slide" style="background:#111;">
+    <h1>Modularity and Innovation<br>in Complex Systems</h1>
+    <h3>Sendil K. Ethiraj &amp; Daniel Levinthal (2004)</h3>
+    <p>
+      複雑システムにおける<strong class="accent">モジュール構造（modularity）</strong>と<br>
+      <strong class="accent">イノベーション動学</strong>の関係をシミュレーションで分析した論文。
+    </p>
+    <p class="small">
+      Management Science, Vol. 50, No. 2, pp. 159–173.
+    </p>
+  </section>
+
+
+  <!-- 2. 研究の位置づけ -->
+
+
+  <section class="slide" style="background:#141414;">
+    <h2>研究の背景と問題意識</h2>
+    <ul>
+      <li>Simon (1962) 以来、<span class="accent">複雑システムの設計・調整・管理</span>は経営・組織論の中心テーマ。</li>
+      <li>近年は「<strong>モジュール化 vs 統合設計</strong>」論争として再燃。</li>
+      <li>既存研究の焦点：
+        <ul>
+          <li>いつモジュール設計が有利か（複雑性マネジメント）</li>
+          <li>モジュール設計のメリット（柔軟性・高速イノベーション等）</li>
+        </ul>
+      </li>
+      <li>しかし、<strong class="accent">「どのように分割するのが適切か」</strong>についての体系的研究は少ない。</li>
+    </ul>
+  </section>
+
+
+  <!-- 3. 研究目的 -->
+
+
+  <section class="slide" style="background:#181818;">
+    <h2>本論文の目的</h2>
+    <div class="box">
+      <p>
+        複雑システムに対して、
+        <strong class="accent">「過少に分割された統合構造（undermodularity）」</strong>と<br>
+        <strong class="accent">「過度に細かく分割されたモジュール構造（overmodularity）」</strong>
+        がイノベーションと性能に与える影響を分析する。
+      </p>
+    </div>
+    <ul>
+      <li>「真の構造」があると仮定し、それからのズレを評価。</li>
+      <li>局所探索（local search）とモジュールの組み替え（recombination）の動学をモデル化。</li>
+      <li>モジュールの粒度と探索プロセスの組み合わせが、<br>長期的な性能にどう効くかを定量的に示す。</li>
+    </ul>
+  </section>
+
+
+  <!-- 4. 複雑システムのモデル化 -->
+
+
+  <section class="slide" style="background:#111822;">
+    <h2>複雑システムの形式モデル</h2>
+    <div class="two-column">
+      <div>
+        <h3>システム表現</h3>
+        <ul>
+          <li>企業（または製品・組織設計）を
+            <strong>N 個の意思決定変数</strong>のベクトルとして表現：
+            <br><code>[a₁, a₂, …, a<sub>N</sub>]</code>
+          </li>
+          <li>各変数は <strong>0/1 の二値</strong>（例：ある組織慣行の採用／非採用）。</li>
+          <li>各構成（0/1 の組み合わせ）は異なる業績（performance）を生む。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>相互依存とパフォーマンス地形</h3>
+        <ul>
+          <li>各意思決定の貢献度は、自身と<strong>相互作用する他の変数</strong>の状態に依存。</li>
+          <li>「ほぼ分解可能（nearly decomposable）」な構造：
+            <ul>
+              <li>モジュール内の相互作用：強い</li>
+              <li>モジュール間の相互作用：弱いが無視できない</li>
+            </ul>
+          </li>
+          <li>結果として、<strong>凹凸の多いパフォーマンス地形</strong>が生じる。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 5. 真のモジュラー構造の例 -->
+
+
+  <section class="slide" style="background:#132028;">
+    <h2>「真の」モジュール構造のイメージ</h2>
+    <ul>
+      <li>例：<strong>18 の意思決定変数</strong>が <strong>3 つのモジュール</strong>に分かれるケース。</li>
+      <li>モジュール内では、ほぼ完全に相互依存（密な x が多数）。</li>
+      <li>モジュール間は、一部の変数のみ弱く接続（少数の x）。</li>
+      <li>この「真の構造」を基準に、
+        <ul>
+          <li>モジュール数を増やしすぎる（過度のモジュール化）</li>
+          <li>モジュール数を減らしすぎる（統合しすぎ）</li>
+        </ul>
+        ことの影響を評価する。
+      </li>
+    </ul>
+    <p class="small">
+      図1（本文中）では、モジュール a, b, c に属する意思決定とその相互依存が行列として示されている。 [oai_citation:0‡Ethiraj2004.pdf](sediment://file_00000000898072079907d5267213139b)
+    </p>
+  </section>
+
+
+  <!-- 6. デザイン表現と誤ったモジュール化 -->
+
+
+  <section class="slide" style="background:#171717;">
+    <h2>デザイナー視点でのモジュール設計</h2>
+    <ul>
+      <li>現実のデザイナーは、<strong>真の構造を完全には知らない</strong>。</li>
+      <li>したがって、意思決定変数をモジュールに割り当てる際に、
+        <strong>モジュール数 K</strong> を「当て推量」で決めることになる。
+      </li>
+      <li>本モデルでは：
+        <ul>
+          <li>真のモジュール数：<strong>M</strong></li>
+          <li>デザイナーが採用するモジュール数：<strong>K</strong></li>
+          <li>K &gt; M：過度のモジュール化（overmodularity）</li>
+          <li>K &lt; M：過小なモジュール化（undermodularity）</li>
+        </ul>
+      </li>
+      <li>モジュールサイズは簡単のため<strong>均等</strong>と仮定。</li>
+    </ul>
+  </section>
+
+
+  <!-- 7. 適応プロセス（1）局所探索 -->
+
+
+  <section class="slide" style="background:#101820;">
+    <h2>適応プロセス①：局所探索（Local Search）</h2>
+    <ul>
+      <li>各モジュール内で、<strong>1 つの意思決定変数をランダムに選び反転</strong>（0→1 / 1→0）。</li>
+      <li>そのモジュールの平均パフォーマンスが
+        <strong>改善する場合のみ</strong>変更を採用。
+      </li>
+      <li>この局所探索は、<strong>全モジュールで並列に</strong>実行。</li>
+      <li>意図としては：
+        <ul>
+          <li>担当チームが自モジュールの性能指標を見ながら改善するイメージ。</li>
+          <li>ただし、モジュール間依存を完全には把握していない。</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 8. 適応プロセス（2）リコンビネーション -->
+
+
+  <section class="slide" style="background:#0f141c;">
+    <h2>適応プロセス②：リコンビネーション（Recombination）</h2>
+    <ul>
+      <li><strong>モジュールの入れ替え・組み替え</strong>による探索。</li>
+      <li>3つのバリエーション：
+        <ul>
+          <li><strong>Firm-level selection</strong>：
+            高業績の企業からモジュールを模倣。
+          </li>
+          <li><strong>Module-level selection</strong>：
+            同種モジュール同士の性能を比較し、優れた方に置換。
+          </li>
+          <li><strong>Firm &amp; Module selection</strong>：
+            両方の情報を組み合わせた選択。</li>
+        </ul>
+      </li>
+      <li>イメージ：
+        <ul>
+          <li>他社の成功モジュールを部品として採用。</li>
+          <li>社内の複数プロジェクト間で「ベストプラクティス」を横展開。</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 9. 実験1：正しいモジュール数の場合 -->
+
+
+  <section class="slide" style="background:#141414;">
+    <h2>実験1：真のモジュール構造を知っている場合</h2>
+    <ul>
+      <li>前提：デザイナーは真のモジュール数 M を正確に把握。</li>
+      <li>主要な結果：
+        <ul>
+          <li><strong>局所探索のみ</strong>：時間とともに緩やかに性能が向上。<br>
+            ローカルピークに収束する傾向。
+          </li>
+          <li><strong>リコンビネーション＋モジュール選択</strong>：
+            初期段階で急速な性能向上。
+          </li>
+          <li><strong>局所探索＋リコンビネーション</strong>：
+            <span class="accent">初期はリコンビネーション、後期は局所探索</span>が効き、両者は補完的。</li>
+        </ul>
+      </li>
+      <li>企業数が多いほど（例：100社）、<br>
+        リコンビネーションのバラエティ創出効果が大きい。
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 10. 実験2：局所探索のみ ＋ モジュール数のズレ -->
+
+
+  <section class="slide" style="background:#16191f;">
+    <h2>実験2-1：局所探索のみの場合</h2>
+    <h3>モジュール数のズレと性能</h3>
+    <ul>
+      <li><strong>真のモジュール数以下（統合寄り）</strong>：
+        <ul>
+          <li>性能は<strong>単調に増加</strong>し、収束も安定。</li>
+          <li>ただしモジュールが大きいほど探索は遅い。</li>
+        </ul>
+      </li>
+      <li><strong>真のモジュール数より多い（過度のモジュール化）</strong>：
+        <ul>
+          <li>性能は<strong>非単調</strong>で、振動を繰り返す。</li>
+          <li>モジュール数＝意思決定数（極端な分割）の場合、
+            性能はほとんど改善しない。
+          </li>
+        </ul>
+      </li>
+      <li>小さなズレ（例：5→3, 5→6）の影響は限定的だが、<br>
+        大きな過度分割は<strong class="accent">長期性能を大きく悪化</strong>させる。</li>
+    </ul>
+  </section>
+
+
+  <!-- 11. 実験2：局所探索＋リコンビネーション -->
+
+
+  <section class="slide" style="background:#181818;">
+    <h2>実験2-2：局所探索＋リコンビネーション</h2>
+    <ul>
+      <li><strong>リコンビネーションのみ</strong>（局所探索なし）の場合：
+        <ul>
+          <li>このときは、<strong>過度モジュール化の方がまだマシ</strong>な場合もある。</li>
+          <li>大きなモジュールを一気に入れ替えると、<br>誤った変更も増えるため。</li>
+        </ul>
+      </li>
+      <li>しかし実務上重要なのは<strong>局所探索＋リコンビネーションの組合せ</strong>。</li>
+      <li>この現実的な条件では：
+        <ul>
+          <li><strong>過度のモジュール化は一貫して不利</strong>。</li>
+          <li>統合寄り（モジュール数少なめ）の方が、<br>
+            長期的には性能ペナルティが小さい。
+          </li>
+        </ul>
+      </li>
+      <li>局所探索とリコンビネーションが、
+        <strong>お互いの変更を打ち消し合う「踊る地形」</strong>
+        が高頻度で発生するため。
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 12. 理論的含意：非対称なトレードオフ -->
+
+
+  <section class="slide" style="background:#121820;">
+    <h2>理論的含意：過度モジュール化 vs 過少モジュール化</h2>
+    <div class="box">
+      <p>
+        <strong class="accent">「モジュール化しすぎ」のペナルティは、<br>
+        「統合しすぎ」のペナルティよりも大きい。</strong>
+      </p>
+    </div>
+    <ul>
+      <li>統合しすぎ：
+        <ul>
+          <li>並列探索が減る／探索速度が遅い。</li>
+          <li>ローカルピークへのロックインのリスク。</li>
+        </ul>
+      </li>
+      <li>モジュール化しすぎ：
+        <ul>
+          <li>モジュール内の指標では良く見えても、<br>
+            システム全体では悪化する変更が多発。
+          </li>
+          <li>モジュール間の弱い相互依存が無視され、<br>
+            探索が<strong>不安定なサイクリング</strong>になりやすい。
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 13. マネジリアル・インプリケーション -->
+
+
+  <section class="slide" style="background:#151515;">
+    <h2>実務への示唆①：モジュール数の設計</h2>
+    <ul>
+      <li>モジュール数は「多いほど良い」わけではない。
+        <strong class="accent">中程度のモジュール化</strong>が望ましい。</li>
+      <li>不確実なときには、
+        <strong>やや統合寄り（モジュール数少なめ）</strong>の方が安全。
+      </li>
+      <li>モジュール化を進めるときは：
+        <ul>
+          <li>モジュール間の依存関係を十分に可視化・分析。</li>
+          <li>「局所的には改善だが全体では悪化」の事例をモニタリング。</li>
+        </ul>
+      </li>
+      <li>「一気に細かく分割する」より、
+        <strong>段階的に分割しながらテスト</strong>する設計プロセスが重要。
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 14. 実務への示唆②：リコンビネーションの条件 -->
+
+
+  <section class="slide" style="background:#10151d;">
+    <h2>実務への示唆②：リコンビネーションの活かし方</h2>
+    <ul>
+      <li>リコンビネーションは、
+        <strong>適切な性能情報（firm &amp; module）</strong>があって初めて有効。</li>
+      <li>社内だけでは：
+        <ul>
+          <li>プロジェクト数が少なく、多様性が限定される。</li>
+          <li>ベストプラクティスの移植だけでは限界。</li>
+        </ul>
+      </li>
+      <li>市場レベルでは：
+        <ul>
+          <li>PC のように部品市場が整備されたケースでは、<br>
+              リコンビネーションの価値が大きい。
+          </li>
+          <li>OS のようにモジュール単位の市場がない場合は、<br>
+              モジュール性能の観測自体が困難。
+          </li>
+        </ul>
+      </li>
+      <li>結論：
+        <strong>リコンビネーション戦略は、「どの単位で性能を測れるか」を前提に設計すべき。</strong>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- 15. まとめ -->
+
+
+  <section class="slide" style="background:#111;">
+    <h2>まとめ</h2>
+    <ul>
+      <li>複雑システムにおけるモジュール化は、
+        <strong>強力な設計原理だがトレードオフを伴う。</strong></li>
+      <li>モジュール数の過大・過小は、
+        <strong>性能に非対称な影響</strong>を及ぼす。
+      </li>
+      <li>現実的な条件（局所探索＋リコンビネーション）では、
+        <strong class="accent">「過度のモジュール化」が特に危険</strong>。
+      </li>
+      <li>デザイナーは：
+        <ul>
+          <li>モジュール構造を前提とせず、進化させる対象として捉える。</li>
+          <li>モジュール・システム両レベルの性能指標を整備する。</li>
+          <li>段階的な分割と統合の試行を通じて「適度なモジュール性」を探る。</li>
+        </ul>
+      </li>
+    </ul>
+    <p class="small">
+      この論文は、「モジュール化＝善」という単純な見方に対し、<br>
+      動学的な性能シミュレーションを通じて慎重な視点を提供している。
+    </p>
+  </section>
+
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+N: 12
+K: 4
+scenario:
+  type: ethiraj2004
+ethiraj:
+  true_modules: 3
+  designer_modules: 4
+  players_basis: designer
+  intra_density: 0.8
+  inter_density: 0.2
+  firms: 12
+  rounds: 150
+  recombination_interval: 5
+  recombination_mode: module
+  baseline_state: "000000000000"
+network:
+  type: LINE
+  params: {}
+simulation:
+  rounds: 150
+  velocity: 1.0
+  error_rate: 0.0
+  local_search_scope: assigned
+game_table:
+  runs: 1
+  protocol: average_final_score
+  max_coalition_size: null
+seeds:
+  random: 202
+  landscape: 808
+  network: 0
+output:
+  path: outputs/tables/ethiraj2004_baseline.csv

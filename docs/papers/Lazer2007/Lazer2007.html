@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Network Structure of Exploration and Exploitation – HTML Slides</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .slide {
+      width: 960px;
+      margin: 40px auto;
+      padding: 40px 50px;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+      page-break-after: always;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    h1 { font-size: 32px; }
+    h2 { font-size: 26px; }
+    h3 { font-size: 20px; }
+    ul {
+      margin-top: 8px;
+      padding-left: 1.2em;
+    }
+    li { margin-bottom: 6px; }
+    .small {
+      font-size: 13px;
+      color: #666;
+      margin-top: 16px;
+    }
+    .center {
+      text-align: center;
+    }
+    .highlight {
+      background: #fffbe6;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. タイトル -->
+  <section class="slide">
+    <h1>The Network Structure of Exploration and Exploitation</h1>
+    <h3>ネットワーク構造と探索／活用のトレードオフ</h3>
+    <p>
+      David Lazer, Allan Friedman, Administrative Science Quarterly (2007)
+    </p>
+    <ul>
+      <li>問題設定：<span class="highlight">「誰が誰とどう繋がるか」が、集合的な問題解決性能をどう左右するか？</span></li>
+      <li>アプローチ：エージェントベース・シミュレーション</li>
+      <li>キーワード：探索（exploration）／活用（exploitation）、NKモデル、ネットワーク構造</li>
+    </ul>
+    <p class="small">
+      出典：Lazer & Friedman (2007) “The Network Structure of Exploration and Exploitation” [oai_citation:0‡lazer-friedman-2007-the-network-structure-of-exploration-and-exploitation.pdf](sediment://file_00000000cc8472089c36e46db8426251)
+    </p>
+  </section>
+
+  <!-- 2. 背景と問題意識 -->
+  <section class="slide">
+    <h2>背景：なぜネットワーク構造が重要か</h2>
+    <ul>
+      <li>現代組織・社会は「より強く・より密に繋がるべき」という前提が支配的</li>
+      <li>既存研究：
+        <ul>
+          <li>個人レベル：良いネットワーク位置にいる個人は有利（イノベーションの早期採用、構造的穴など）</li>
+          <li>システムレベル：密なネットワークは協調・調整には有利という示唆</li>
+        </ul>
+      </li>
+      <li>しかし「全体としての問題解決性能」に対するネットワーク構造の影響は十分に理解されていない</li>
+      <li>特に、<span class="highlight">探索と活用のバランス</span>をネットワークがどう規定するかが未解明</li>
+    </ul>
+  </section>
+
+  <!-- 3. パラレル問題解決の設定 -->
+  <section class="slide">
+    <h2>モデル化対象：Parallel Problem Solving</h2>
+    <h3>並列問題解決の典型状況</h3>
+    <ul>
+      <li>多くのエージェントが<span class="highlight">同じ複雑な問題</span>に並列に取り組む</li>
+      <li>例：R&amp;D ラボのエンジニア、医師集団、政策担当者、戦術を試行する部隊など</li>
+      <li>各エージェントは「自然（環境）」と戦っており、<br>他者の成功・失敗は自分の直接の報酬には影響しない（ゼロサムではない）</li>
+      <li>ただし、<span class="highlight">他者の行動と成果を観察して模倣することはできる</span></li>
+    </ul>
+  </section>
+
+  <!-- 4. 複雑な問題空間：NKモデル -->
+  <section class="slide">
+    <h2>問題空間：NKモデルによる複雑性の表現</h2>
+    <ul>
+      <li><strong>N</strong>：活動・意思決定の次元数（ビット数）</li>
+      <li><strong>K</strong>：相互依存（シナジー）の強さ
+        <ul>
+          <li>K = 0：単純。単峰の景観（局所解は1つだけ）</li>
+          <li>0 &lt; K &lt; N − 1：複数の局所最適をもつ「凸凹した」景観</li>
+          <li>K = N − 1：完全にランダムなカオス的景観</li>
+        </ul>
+      </li>
+      <li>各解（ビット列）には「性能スコア」が割り当てられる</li>
+      <li>複雑な問題：<span class="highlight">多くの局所最適が存在し、近傍探索ではグローバル最適にたどり着きにくい</span></li>
+    </ul>
+    <p class="small">
+      論文では主に N = 20, K = 5 の「適度に rugged な景観」を使用。
+    </p>
+  </section>
+
+  <!-- 5. エージェントの行動ルール -->
+  <section class="slide">
+    <h2>エージェントの行動：探索と模倣</h2>
+    <ul>
+      <li>各ラウンドで、全エージェントが並行して意思決定</li>
+      <li>ステップ 1：ネットワーク上の隣人を観察
+        <ul>
+          <li>自分より高いスコアの隣人がいれば、<span class="highlight">最も成功している隣人の戦略をコピー</span></li>
+        </ul>
+      </li>
+      <li>ステップ 2：模倣する相手がいない場合（自分が局所的に最良）
+        <ul>
+          <li>自分の戦略のビットを1つランダムに反転（近傍探索）</li>
+          <li>スコアが改善すれば採用、悪化すれば元に戻す</li>
+        </ul>
+      </li>
+      <li>バリエーションとして：
+        <ul>
+          <li>隣人を見る頻度（velocity）を変える</li>
+          <li>コピーに誤り（error）を入れて「戦略の混合」を許す</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 6. ネットワーク構造のタイプ -->
+  <section class="slide">
+    <h2>ネットワーク構造：4つのアーキタイプ</h2>
+    <ul>
+      <li><strong>線形ネットワーク（line）</strong>
+        <ul>
+          <li>両端以外のノードは前後2つとだけ接続</li>
+          <li>平均距離が最大。通信効率が最も低い構造</li>
+        </ul>
+      </li>
+      <li><strong>完全ネットワーク（fully connected）</strong>
+        <ul>
+          <li>全員が全員と直接つながる</li>
+          <li>平均距離が最小。通信効率が最大</li>
+        </ul>
+      </li>
+      <li><strong>ランダムネットワーク</strong>
+        <ul>
+          <li>各ペアが確率 p で接続</li>
+          <li>p により密度と平均距離が変化</li>
+        </ul>
+      </li>
+      <li><strong>スモールワールドネットワーク</strong>
+        <ul>
+          <li>リング格子から一部リンクをランダムに「張り替え」</li>
+          <li>密度一定のまま平均距離を短縮</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 7. 線形 vs 完全ネットワーク：基本結果 -->
+  <section class="slide">
+    <h2>結果①：線形 vs 完全ネットワーク</h2>
+    <h3>複雑な問題（rugged landscape）の場合</h3>
+    <ul>
+      <li>短期（初期ラウンド）：
+        <ul>
+          <li>完全ネットワークが高性能</li>
+          <li>最初にたまたま良い戦略を持つエージェントに一気に収束</li>
+        </ul>
+      </li>
+      <li>長期（収束まで観察）：
+        <ul>
+          <li><span class="highlight">線形ネットワークの方が最終スコアは高い</span></li>
+          <li>情報伝播が遅い分、多様な戦略が長く共存し、<br>より良い局所解を複数探索できる</li>
+        </ul>
+      </li>
+      <li>完全ネットワークは早期に「そこそこの局所解」にロックインされやすい</li>
+    </ul>
+    <p class="small">
+      図4・図5：完全ネットワークは早期に高得点に到達するが、その後の改善は小さい。一方線形は遅いが高みへ。 [oai_citation:1‡lazer-friedman-2007-the-network-structure-of-exploration-and-exploitation.pdf](sediment://file_00000000cc8472089c36e46db8426251)
+    </p>
+  </section>
+
+  <!-- 8. ランダムネットワークと密度 -->
+  <section class="slide">
+    <h2>結果②：ランダムネットワークと密度</h2>
+    <ul>
+      <li>ランダムネットワークのリンク確率 p を 1〜50% で変化</li>
+      <li><strong>全ネットワーク（分断ありも含む）</strong>を見た場合：
+        <ul>
+          <li>密度と性能の関係は<span class="highlight">逆U字型</span></li>
+          <li>疎すぎるとネットワークが複数コンポーネントに分断され、小集団が小さい探索しかできない</li>
+          <li>密すぎると完全ネットワークと同様に多様性が早期に失われる</li>
+        </ul>
+      </li>
+      <li><strong>単一コンポーネントに限定</strong>すると：
+        <ul>
+          <li>密度が低いほど長期性能は高い傾向</li>
+          <li>「全員が何らかの経路でつながっていれば、リンク数は少ないほどよい」</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 9. スモールワールドと平均距離 -->
+  <section class="slide">
+    <h2>結果③：スモールワールドと平均距離</h2>
+    <ul>
+      <li>リング格子（密度一定）からリンクを少しずつ「近距離 → 遠距離」に張り替え</li>
+      <li>密度は一定、<span class="highlight">平均パス長だけを短くする</span>操作</li>
+      <li>結果：
+        <ul>
+          <li>近道（ショートカット）が増え、平均距離が短くなるほど、<br><strong>長期性能は単調に悪化</strong></li>
+          <li>情報伝播が速くなりすぎると、多様性が早く消える</li>
+        </ul>
+      </li>
+      <li>時間スケールとの関係：
+        <ul>
+          <li>短期（例：t=10）ではショートカットが多いほど有利</li>
+          <li>長期（例：t=55）ではショートカットが少ない方が有利</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 10. 時間スケールと最適な接続度 -->
+  <section class="slide">
+    <h2>結果④：時間スケールと「最適な繋がり方」</h2>
+    <ul>
+      <li>同じネットワークでも、評価する時間スケールによって「最適構造」が変わる</li>
+      <li>非常に短期：
+        <ul>
+          <li>情報拡散が速いネットワーク（高密度・短い平均距離）が最適</li>
+        </ul>
+      </li>
+      <li>非常に長期：
+        <ul>
+          <li>情報拡散が遅いネットワーク（低密度・長い平均距離）が最適</li>
+        </ul>
+      </li>
+      <li>中間的な期間：
+        <ul>
+          <li>接続度と性能の関係は逆U字型</li>
+          <li>「ほどほどに繋がっていて、ほどほどに離れている」構造がベスト</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 11. 問題の単純さ（ruggedness）の影響 -->
+  <section class="slide">
+    <h2>結果⑤：問題が単純な場合はどうなるか</h2>
+    <ul>
+      <li>K = 0（単峰の景観）＝ シナジーなしの単純な問題</li>
+      <li>この場合：
+        <ul>
+          <li>線形ネットワークも完全ネットワークも、<br><span class="highlight">最終的にはグローバル最適に到達</span></li>
+          <li>完全ネットワークの方が到達が圧倒的に速い</li>
+        </ul>
+      </li>
+      <li>つまり：
+        <ul>
+          <li>「複雑さ（local optimum の多さ）」がないと、<br>情報拡散の速さは純粋に有利に働く</li>
+          <li>本論文の「遅いネットワークが長期的に有利」という結論は、<br>あくまで<span class="highlight">複雑な問題</span>に特有の現象</li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 12. 情報の速度（velocity）とコピー誤差（error） -->
+  <section class="slide">
+    <h2>結果⑥：情報速度とコピー誤差の効果</h2>
+    <h3>1. 情報速度（velocity）</h3>
+    <ul>
+      <li>各ラウンドで「隣人を見る確率」を 100% → 50% → 20% → 10% に低下</li>
+      <li>結果：
+        <ul>
+          <li>短期性能：低 velocity ほど悪化（拡散が遅い）</li>
+          <li>長期性能：低 velocity ほど改善（多様性維持 → より良い解を発見）</li>
+        </ul>
+      </li>
+    </ul>
+    <h3>2. コピー誤差（error）</h3>
+    <ul>
+      <li>優れた戦略をコピーするとき、各ビットを確率 (1−e) でコピー、e で元のまま</li>
+      <li>結果：
+        <ul>
+          <li>短期：誤差ありは収束が遅くなり、一時的に性能低下</li>
+          <li>長期：誤差ありの方が常に高いスコアに到達（探索が増える）</li>
+        </ul>
+      </li>
+      <li>誤差は「戦略の再組み合わせ」を生み、探索を強化する役割を果たす</li>
+    </ul>
+  </section>
+
+  <!-- 13. 全体のメッセージ -->
+  <section class="slide">
+    <h2>全体としてのメッセージ</h2>
+    <ul>
+      <li><span class="highlight">効率的なネットワーク（良く繋がった・速い・正確）は、短期的には良いが、長期的には悪い</span></li>
+      <li>理由：
+        <ul>
+          <li>情報拡散が速い → 高性能戦略への収束も速い</li>
+          <li>しかしその過程で戦略の多様性が急速に失われ、<br>より高い局所解・グローバル解を探索する余地が消える</li>
+        </ul>
+      </li>
+      <li>探索（exploration） vs 活用（exploitation）のトレードオフを、<br><span class="highlight">ネットワーク構造・情報速度・コピー精度が共同で規定</span></li>
+    </ul>
+  </section>
+
+  <!-- 14. 実務・研究への含意 -->
+  <section class="slide">
+    <h2>含意：実務・研究への示唆</h2>
+    <ul>
+      <li>チーム・組織設計：
+        <ul>
+          <li>短期成果を重視するタスク：密で情報伝播の速いネットワークが有利</li>
+          <li>長期のイノベーションや探索が重要なタスク：<br>あえて「遅く・疎な」ネットワークや、誤差・ノイズを許す仕組みが有利</li>
+        </ul>
+      </li>
+      <li>「最適な繋がり方」はタスクの複雑性・時間スケールによって変わる</li>
+      <li>ネットワーク構造を、単に「もっと繋ぐ」のではなく、<br><span class="highlight">探索と活用のポートフォリオとして設計する必要</span></li>
+      <li>実データ・実験による検証の余地が大きい（タスク複雑性・時間圧力などを明示的に扱うべき）</li>
+    </ul>
+  </section>
+
+</body>
+</html>

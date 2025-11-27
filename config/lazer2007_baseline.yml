@@ -1,0 +1,22 @@
+N: 8
+K: 3
+scenario:
+  type: lazer2007
+network:
+  type: LINE
+  params: {}
+simulation:
+  rounds: 150
+  velocity: 1.0
+  error_rate: 0.0
+  local_search_scope: assigned
+game_table:
+  runs: 3
+  protocol: average_final_score
+  max_coalition_size: null
+seeds:
+  random: 42
+  landscape: 123
+  network: 7
+output:
+  path: outputs/tables/lazer2007_baseline.csv

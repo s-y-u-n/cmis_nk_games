@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "cmis-nk-games"
+version = "0.1.0"
+description = "NK model simulations and cooperative game-table generation"
+authors = ["tamr-fnc <114199496+s-y-u-n@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "cmis_nk", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^2.3.5"
+networkx = "^3.2.1"
+pandas = "^2.3.3"
+PyYAML = "^6.0.3"
+
+[tool.poetry.scripts]
+nk-games = "cmis_nk.cli:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
